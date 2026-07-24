@@ -13,7 +13,14 @@ Castelldefels and pushes an alert when it's worth going out.
 | Twintip / surf / foil zone status | [mojokite.com](https://www.mojokite.com/zonakite/castelldefels.php) — *Zona kitesurf en Castelldefels* | 12:00 – 19:00 | 10 min |
 
 The homepage shows the current reading, the kite-zone board, and a 12-hour
-graph of actual / average / gust.
+graph of actual / average / gust. It updates in place: Firestore's `onSnapshot`
+pushes each new measurement straight to the page, so an open tab never needs a
+refresh (the indicator under the reading flashes when a value lands).
+
+The Direction cell is a compass rose. Castelldefels beach faces roughly
+south-east, so the onshore arc — **E clockwise through S to WSW** — is green and
+the rest red; the sector the wind is coming from is highlighted. Edit
+`GOOD_FROM` / `GOOD_TO` in `web/src/compass.ts` to change the arc.
 
 **Push alerts fire when:**
 - twintip status becomes **`Quizás`** or **`SI!`**, or

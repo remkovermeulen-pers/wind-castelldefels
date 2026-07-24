@@ -2,6 +2,7 @@ import "./styles.css";
 import { renderChart, WIND_ALERT_KNOTS } from "./chart";
 import { subscribeReadings, subscribeZone, type BoardValue, type Reading, type ZoneSnapshot } from "./data";
 import { currentState, disable, enable, type NotifyState } from "./notifications";
+import { renderCompass } from "./compass";
 
 const $ = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
@@ -24,6 +25,27 @@ function pillClass(v: BoardValue | null): string {
 
 // --- Wind ---------------------------------------------------------------
 
+/**
+ * Firestore's onSnapshot pushes every write straight to the page, so readings
+ * appear with no refresh. Flash the indicator when the newest timestamp
+ * actually advances, so it is visible that the value just changed.
+ */
+let newestSeen = 0;
+
+function markLive(ts: Date): void {
+  const el = $("live");
+  el.hidden = false;
+  if (ts.getTime() <= newestSeen) return;
+
+  const first = newestSeen === 0;
+  newestSeen = ts.getTime();
+  if (first) return; // don't flash on initial load
+
+  el.classList.remove("tick");
+  void el.offsetWidth; // force reflow so the animation restarts
+  el.classList.add("tick");
+}
+
 function renderWind(rows: Reading[]): void {
   const canvas = $<HTMLCanvasElement>("chart");
   const empty = $("chart-empty");
@@ -42,17 +64,14 @@ function renderWind(rows: Reading[]): void {
 
   const last = rows[rows.length - 1];
   // Backfilled rows carry no ACTUAL series and can lack a direction.
-  const kn = (v: number | null) => (v === null ? "--" : `${v} kn`);
+  const val = (v: number | null) => (v === null ? "--" : String(v));
 
-  $("avg").textContent = last.average === null ? "--" : String(last.average);
-  $("actual").textContent = kn(last.actual);
-  $("gust").textContent = kn(last.gust);
-  $("dir").textContent =
-    last.direction === "?"
-      ? "--"
-      : last.windName
-        ? `${last.direction} · ${last.windName}`
-        : last.direction;
+  $("avg").textContent = val(last.average);
+  $("actual").textContent = val(last.actual);
+  $("gust").textContent = val(last.gust);
+  // The Direction cell holds the rose itself; the local wind name (Levante,
+  // Garbí…) goes on the timestamp line, where there is room for it.
+  renderCompass($("dir"), last.direction, { size: 76, compact: true });
 
   $("avg").parentElement!.classList.toggle(
     "alert",
@@ -60,14 +79,34 @@ function renderWind(rows: Reading[]): void {
   );
 
   const temp = last.tempC === null ? "" : ` · ${last.tempC} °C`;
+  const name = last.windName ? ` · ${last.windName}` : "";
   const origin = last.backfilled ? " · from published graph" : "";
   $("stamp").textContent =
-    `Updated ${stampFmt.format(last.ts)}${temp} · ${rows.length} readings${origin}`;
+    `Updated ${stampFmt.format(last.ts)}${name}${temp} · ${rows.length} readings${origin}`;
+
+  markLive(last.ts);
 
   renderChart(canvas, rows);
 }
 
 // --- Kite zone ----------------------------------------------------------
+
+/** Circular badge icons for the three states mojokite reports. */
+const ICONS = {
+  open: '<path d="M4.8 8.3l2.1 2.1 4.3-4.3"/>',
+  closed: '<path d="M5.5 5.5l5 5M10.5 5.5l-5 5"/>',
+  soon: '<path d="M8 4.4V8l2.4 1.6"/>',
+} as const;
+
+function zoneBadge(status: string): string {
+  const s = status.toUpperCase();
+  const kind = s === "OPEN" ? "open" : s.includes("SOON") ? "soon" : "closed";
+  return (
+    `<span class="zone-icon ${kind}" title="Zone ${s.toLowerCase()}" aria-label="Zone ${s.toLowerCase()}">` +
+    `<svg viewBox="0 0 16 16" aria-hidden="true">` +
+    `<circle cx="8" cy="8" r="7" class="disc"/>${ICONS[kind]}</svg></span>`
+  );
+}
 
 function renderZone(zone: ZoneSnapshot | null): void {
   if (!zone) {
@@ -82,7 +121,8 @@ function renderZone(zone: ZoneSnapshot | null): void {
     el.className = pillClass(zone[key]);
   }
 
-  $("zone-stamp").textContent = `Zone ${zone.status} · checked ${stampFmt.format(zone.ts)}`;
+  $("zone-stamp").innerHTML =
+    `Zone ${zone.status} · checked ${stampFmt.format(zone.ts)}` + zoneBadge(zone.status);
 }
 
 // --- Notifications ------------------------------------------------------

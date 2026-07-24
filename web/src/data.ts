@@ -6,6 +6,7 @@ import {
   query,
   Timestamp,
   where,
+  type Query,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -39,27 +40,53 @@ export interface ZoneSnapshot {
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
 
+/** How often the sliding window is rebuilt (see `live` below). */
+const WINDOW_REFRESH_MS = 15 * 60 * 1000;
+
 function since(ms: number): Timestamp {
   return Timestamp.fromMillis(Date.now() - ms);
 }
 
+/**
+ * Subscribes to a query and keeps it live.
+ *
+ * onSnapshot already pushes every new document to the page the moment it is
+ * written, so readings appear without a refresh. The catch is that the 12-hour
+ * cutoff is baked into the query when it is built — a tab left open all day
+ * would keep widening its window and never drop stale points. So the query is
+ * rebuilt on an interval, which re-anchors the cutoff to "now".
+ */
+function live<T>(build: () => Query, map: (snap: { docs: { data: () => Record<string, unknown> }[] }) => T, cb: (v: T) => void): () => void {
+  let stop = onSnapshot(build(), (snap) => cb(map(snap)));
+
+  const timer = setInterval(() => {
+    stop();
+    stop = onSnapshot(build(), (snap) => cb(map(snap)));
+  }, WINDOW_REFRESH_MS);
+
+  return () => {
+    clearInterval(timer);
+    stop();
+  };
+}
+
+// Number(null) is 0, which would draw a phantom dip at zero — keep missing
+// series null so Chart.js renders a gap instead.
+const num = (x: unknown): number | null =>
+  x === null || x === undefined ? null : Number(x);
+
 /** Live stream of wind readings from the last 12 hours, oldest first. */
 export function subscribeReadings(cb: (rows: Reading[]) => void): () => void {
-  const q = query(
-    collection(db, "readings"),
-    where("ts", ">=", since(HOURS_12)),
-    orderBy("ts", "asc")
-  );
-
-  return onSnapshot(q, (snap) => {
-    cb(
+  return live(
+    () =>
+      query(
+        collection(db, "readings"),
+        where("ts", ">=", since(HOURS_12)),
+        orderBy("ts", "asc")
+      ),
+    (snap) =>
       snap.docs.map((d) => {
         const v = d.data();
-        // Number(null) is 0, which would draw a phantom dip at zero — keep
-        // missing series null so Chart.js renders a gap instead.
-        const num = (x: unknown): number | null =>
-          x === null || x === undefined ? null : Number(x);
-
         return {
           ts: (v.ts as Timestamp).toDate(),
           actual: num(v.actual),
@@ -68,37 +95,37 @@ export function subscribeReadings(cb: (rows: Reading[]) => void): () => void {
           direction: String(v.direction ?? "?"),
           backfilled: v.backfilled === true,
           windName: (v.windName as string) ?? null,
-          tempC: v.tempC === null || v.tempC === undefined ? null : Number(v.tempC),
+          tempC: num(v.tempC),
           stationTime: (v.stationTime as string) ?? null,
         };
-      })
-    );
-  });
+      }),
+    cb
+  );
 }
 
 /** Live stream of the most recent kite-zone board reading. */
 export function subscribeZone(cb: (row: ZoneSnapshot | null) => void): () => void {
-  const q = query(
-    collection(db, "twintip"),
-    where("ts", ">=", since(HOURS_12)),
-    orderBy("ts", "desc"),
-    limit(1)
+  return live(
+    () =>
+      query(
+        collection(db, "twintip"),
+        where("ts", ">=", since(HOURS_12)),
+        orderBy("ts", "desc"),
+        limit(1)
+      ),
+    (snap) => {
+      const d = snap.docs[0];
+      if (!d) return null;
+      const v = d.data();
+      return {
+        ts: (v.ts as Timestamp).toDate(),
+        status: String(v.status ?? "UNKNOWN"),
+        twintip: (v.twintip as BoardValue) ?? null,
+        surf: (v.surf as BoardValue) ?? null,
+        foil: (v.foil as BoardValue) ?? null,
+        siteLastUpdate: (v.siteLastUpdate as string) ?? null,
+      };
+    },
+    cb
   );
-
-  return onSnapshot(q, (snap) => {
-    const d = snap.docs[0];
-    if (!d) {
-      cb(null);
-      return;
-    }
-    const v = d.data();
-    cb({
-      ts: (v.ts as Timestamp).toDate(),
-      status: String(v.status ?? "UNKNOWN"),
-      twintip: (v.twintip as BoardValue) ?? null,
-      surf: (v.surf as BoardValue) ?? null,
-      foil: (v.foil as BoardValue) ?? null,
-      siteLastUpdate: (v.siteLastUpdate as string) ?? null,
-    });
-  });
 }

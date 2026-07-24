@@ -37,13 +37,19 @@
           <dl class="hero-stats">
             <div><dt>Actual</dt><dd id="actual">--</dd></div>
             <div><dt>Gusts</dt><dd id="gust">--</dd></div>
-            <div><dt>Direction</dt><dd id="dir">--</dd></div>
+            <div>
+              <dt>Direction</dt>
+              <dd id="dir" class="dir-cell"></dd>
+            </div>
           </dl>
+
+          <p class="rose-note">Rose: green = onshore (E → WSW)</p>
           <p class="stamp" id="stamp">Waiting for data…</p>
+          <p class="live" id="live" hidden><i></i>Live</p>
         </section>
 
         <section class="card statuses" id="statuses">
-          <h2>Zona kitesurf</h2>
+          <h2>Zona kitesurf (15:00 – 19:00)</h2>
           <ul class="board" id="board">
             <li><span>Twintip</span><b class="pill" id="tt-twintip">—</b></li>
             <li><span>Surf</span><b class="pill" id="tt-surf">—</b></li>
