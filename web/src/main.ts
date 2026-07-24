@@ -110,11 +110,7 @@ function renderWind(rows: Reading[]): void {
     last.average !== null && last.average >= WIND_ALERT_KNOTS
   );
 
-  const temp = last.tempC === null ? "" : ` · ${last.tempC} °C`;
-  const name = last.windName ? ` · ${last.windName}` : "";
-  const origin = last.backfilled ? " · from published graph" : "";
-  $("stamp").textContent =
-    `Updated ${stampFmt.format(last.ts)}${name}${temp} · ${rows.length} readings${origin}`;
+  $("stamp").textContent = `Updated ${stampFmt.format(last.ts)}`;
 
   markLive(last.ts);
 
