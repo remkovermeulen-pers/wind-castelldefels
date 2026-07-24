@@ -43,6 +43,16 @@ export function renderChart(canvas: HTMLCanvasElement, readings: Reading[]): voi
   const muted = css("--muted");
   const line = css("--line");
 
+  /**
+   * Mark the individual measurements while the series is sparse.
+   *
+   * A full day is ~145 points, where markers would just be noise — but early in
+   * the day, or after a gap in polling, a handful of readings drawn as bare
+   * lines look like abstract bars with nothing showing where the actual samples
+   * are. Below ~40 points the markers are what make it legible as data.
+   */
+  const pointRadius = readings.length <= 40 ? 3 : 0;
+
   const data = {
     labels,
     datasets: [
@@ -52,7 +62,9 @@ export function renderChart(canvas: HTMLCanvasElement, readings: Reading[]): voi
         borderColor: css("--gust"),
         backgroundColor: "transparent",
         borderWidth: 1.5,
-        pointRadius: 0,
+        pointRadius,
+        pointHoverRadius: 5,
+        pointBackgroundColor: css("--gust"),
         tension: 0.3,
       },
       {
@@ -61,7 +73,9 @@ export function renderChart(canvas: HTMLCanvasElement, readings: Reading[]): voi
         borderColor: css("--accent"),
         backgroundColor: "transparent",
         borderWidth: 2.5,
-        pointRadius: 0,
+        pointRadius,
+        pointHoverRadius: 5,
+        pointBackgroundColor: css("--accent"),
         tension: 0.3,
       },
       {
@@ -71,7 +85,9 @@ export function renderChart(canvas: HTMLCanvasElement, readings: Reading[]): voi
         backgroundColor: "transparent",
         borderWidth: 1.5,
         borderDash: [2, 3],
-        pointRadius: 0,
+        pointRadius,
+        pointHoverRadius: 5,
+        pointBackgroundColor: css("--actual"),
         tension: 0.3,
       },
       {
