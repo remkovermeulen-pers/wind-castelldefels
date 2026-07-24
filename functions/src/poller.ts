@@ -42,7 +42,6 @@ export async function tick(now: Date): Promise<Record<string, unknown>> {
         pressureHpa: w.pressureHpa,
         humidityPct: w.humidityPct,
         stationTime: w.stationTime,
-        backfilled: false,
         source: "update_me_mdx",
       });
 

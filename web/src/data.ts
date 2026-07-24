@@ -15,15 +15,14 @@ export type BoardValue = "Yes" | "No" | "Maybe";
 export interface Reading {
   ts: Date;
   /**
-   * Null for rows recovered from the published graph: it plots Nominal and
-   * Racha only, so backfilled history has no instantaneous reading.
+   * Nullable purely as a guard: every row the poller writes has all three
+   * series, but a null must render as a gap rather than a phantom dip at zero
+   * if one ever goes missing.
    */
   actual: number | null;
   average: number | null;
   gust: number | null;
   direction: string;
-  /** True for rows reconstructed by scripts/backfill-graph.py. */
-  backfilled: boolean;
   windName: string | null;
   tempC: number | null;
   stationTime: string | null;
@@ -93,7 +92,6 @@ export function subscribeReadings(cb: (rows: Reading[]) => void): () => void {
           average: num(v.average),
           gust: num(v.gust),
           direction: String(v.direction ?? "?"),
-          backfilled: v.backfilled === true,
           windName: (v.windName as string) ?? null,
           tempC: num(v.tempC),
           stationTime: (v.stationTime as string) ?? null,

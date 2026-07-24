@@ -63,7 +63,7 @@ export interface CompassOptions {
 
 /**
  * Renders the rose into `host`. Pass "?" (or anything unrecognised) to draw the
- * ring with no active sector — backfilled rows have no direction.
+ * ring with no active sector.
  */
 export function renderCompass(host: HTMLElement, dir: string, opts: CompassOptions = {}): void {
   const { size = 132, compact = false } = opts;

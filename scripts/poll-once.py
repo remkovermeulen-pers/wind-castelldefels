@@ -76,7 +76,6 @@ def poll_wind(iso):
         "stationTime": firestore.value(
             re.sub(r"^Last update:\s*", "", upd[0]) if upd else None
         ),
-        "backfilled": firestore.value(False),
         "source": firestore.value("update_me_mdx"),
     }
     print(f"  wind: actual={num(speeds[0])} avg={num(speeds[1])} gust={num(gust[0])} "
