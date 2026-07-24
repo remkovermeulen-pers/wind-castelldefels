@@ -4,6 +4,14 @@ import { functionsBase, vapidKey } from "./firebase-config";
 
 const TOKEN_KEY = "wind.fcmToken";
 
+/**
+ * The VAPID key ships as a `__VAPID_KEY__` placeholder until someone generates
+ * a Web Push certificate in the Firebase console. Detect that explicitly —
+ * otherwise getToken() throws a generic failure and the UI blames the browser
+ * for what is actually missing configuration.
+ */
+const vapidConfigured = !vapidKey.startsWith("__");
+
 export type NotifyState =
   | { kind: "on" }
   | { kind: "off" }
@@ -20,6 +28,9 @@ function isIosSafariNotInstalled(): boolean {
 }
 
 export async function currentState(): Promise<NotifyState> {
+  if (!vapidConfigured) {
+    return { kind: "unsupported", reason: "Alerts not set up yet" };
+  }
   if (!("Notification" in window) || !("serviceWorker" in navigator)) {
     return {
       kind: "unsupported",
@@ -44,6 +55,10 @@ export async function currentState(): Promise<NotifyState> {
  * device.
  */
 export async function enable(): Promise<NotifyState> {
+  if (!vapidConfigured) {
+    return { kind: "unsupported", reason: "Alerts not set up yet" };
+  }
+
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return { kind: "blocked" };
 
