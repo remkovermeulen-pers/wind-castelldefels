@@ -153,14 +153,48 @@ const madridDay = new Intl.DateTimeFormat("en-CA", {
  * timezone — which would shift it for anyone outside Spain. The date is only
  * shown when the board is stale from an earlier day.
  */
+/**
+ * Shifts a YYYY-MM-DD string back one calendar day.
+ *
+ * Done as arithmetic on the date parts rather than subtracting 24h from a
+ * timestamp, so the DST changeovers cannot land it on the wrong day.
+ */
+function previousDay(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d));
+  t.setUTCDate(t.getUTCDate() - 1);
+  return t.toISOString().slice(0, 10);
+}
+
+const dayLabel = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  timeZone: "Europe/Madrid",
+});
+
+/**
+ * Formats mojokite's own "last update" stamp, which is plain local time with no
+ * date context.
+ *
+ * The board frequently sits unchanged for hours and stays stale overnight, so a
+ * bare "updated 15:58" would read as current when it is really a day old. Only
+ * today's stamps are shown as a bare time.
+ */
 function siteStamp(raw: string | null): string | null {
   if (!raw) return null;
   const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
   if (!m) return raw;
 
   const [, y, mo, d, hh, mm] = m;
-  const sameDay = madridDay.format(new Date()) === `${y}-${mo}-${d}`;
-  return sameDay ? `${hh}:${mm}` : `${d}/${mo} ${hh}:${mm}`;
+  const stampDay = `${y}-${mo}-${d}`;
+  const time = `${hh}:${mm}`;
+  const today = madridDay.format(new Date());
+
+  if (stampDay === today) return time;
+  if (stampDay === previousDay(today)) return `Yesterday at ${time}`;
+
+  // Noon UTC is safely the same calendar day in Madrid, so this cannot slip.
+  return `${dayLabel.format(new Date(`${stampDay}T12:00:00Z`))} at ${time}`;
 }
 
 function renderZone(zone: ZoneSnapshot | null): void {
