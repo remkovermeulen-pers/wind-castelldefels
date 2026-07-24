@@ -108,6 +108,31 @@ function zoneBadge(status: string): string {
   );
 }
 
+const madridDay = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Madrid",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/**
+ * Formats mojokite's own "last_update" stamp.
+ *
+ * The site reports its local (Europe/Madrid) clock as a naive string, so the
+ * time is shown exactly as given rather than re-parsed into the viewer's
+ * timezone — which would shift it for anyone outside Spain. The date is only
+ * shown when the board is stale from an earlier day.
+ */
+function siteStamp(raw: string | null): string | null {
+  if (!raw) return null;
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if (!m) return raw;
+
+  const [, y, mo, d, hh, mm] = m;
+  const sameDay = madridDay.format(new Date()) === `${y}-${mo}-${d}`;
+  return sameDay ? `${hh}:${mm}` : `${d}/${mo} ${hh}:${mm}`;
+}
+
 function renderZone(zone: ZoneSnapshot | null): void {
   if (!zone) {
     $("zone-stamp").textContent =
@@ -121,8 +146,15 @@ function renderZone(zone: ZoneSnapshot | null): void {
     el.className = pillClass(zone[key]);
   }
 
-  $("zone-stamp").innerHTML =
-    `Zone ${zone.status} · checked ${stampFmt.format(zone.ts)}` + zoneBadge(zone.status);
+  // Prefer mojokite's own update time over ours — the board often sits
+  // unchanged for a while after we poll it. Fall back to the poll time only
+  // if the site did not report one.
+  const site = siteStamp(zone.siteLastUpdate);
+  const when = site
+    ? `updated ${site}`
+    : `checked ${stampFmt.format(zone.ts)}`;
+
+  $("zone-stamp").innerHTML = `Zone ${zone.status} · ${when}` + zoneBadge(zone.status);
 }
 
 // --- Notifications ------------------------------------------------------
