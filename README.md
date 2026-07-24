@@ -143,10 +143,16 @@ needed Blaze.
 The schedule fires every 5 min across a 15-hour UTC window ≈ **180 runs/day**,
 and GitHub bills each run rounded up to a whole minute ≈ **5,400 min/month**.
 
-- **Public repo:** Actions minutes are unlimited and free. Nothing to do.
-- **Private repo:** the free allowance is 2,000 min/month, so this overruns it.
-  Either make the repo public, or widen the cron interval — `*/15` lands at
-  ~1,800 min/month.
+**This repo is public, so Actions minutes are unlimited and free.** That is why
+it is public — a private repo only gets 2,000 min/month, which this overruns
+about threefold. If you ever make it private, change the cron to `*/15`
+(~1,800 min/month) or narrow the daily window.
+
+Two other things worth knowing about GitHub's scheduler:
+
+- it delays scheduled runs under load, occasionally by 10+ minutes, and drops
+  them entirely at peak times — the cadence is approximate, not guaranteed
+- it disables scheduled workflows after 60 days with no repository activity
 
 To switch to Cloud Functions instead, upgrade at
 [the console](https://console.firebase.google.com/project/wind-castelldefels/usage/details),
