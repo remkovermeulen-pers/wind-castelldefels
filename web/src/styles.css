@@ -309,14 +309,26 @@ main {
   animation: flash 0.7s ease-out;
 }
 
-/* Data has stopped arriving — a steady amber dot, so it cannot be mistaken
-   for the pulsing green "receiving updates" state. */
-.live.stale {
+/* Age bands. Green is the default above; past 15 min the data has missed at
+   least two 5-minute ticks, and past an hour nothing is polling at all. Both
+   stale states hold a steady dot so they cannot be mistaken for the pulsing
+   "receiving updates" green. */
+.live.warn {
   color: var(--maybe);
 }
 
-.live.stale i {
+.live.warn i {
   background: var(--maybe);
+  animation: none;
+  opacity: 1;
+}
+
+.live.bad {
+  color: var(--no);
+}
+
+.live.bad i {
+  background: var(--no);
   animation: none;
   opacity: 1;
 }

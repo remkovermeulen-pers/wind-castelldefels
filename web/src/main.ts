@@ -32,35 +32,39 @@ function pillClass(v: BoardValue | null): string {
  * reading appears without a refresh — but "connected" is not the same as
  * "current". If the poller is not running, the socket stays happily open while
  * the data silently ages, so this reports the age of the newest reading rather
- * than the state of the connection, and flashes only when the data actually
- * advances.
+ * than the state of the connection.
  *
- * The wind poller runs every 5 min, so anything past ~13 min means a tick was
- * missed or nothing is polling at all.
+ * The wind poller runs every 5 min, so 15 minutes means at least two ticks were
+ * missed; an hour means nothing is polling at all.
  */
-const STALE_AFTER_MS = 13 * 60 * 1000;
+const WARN_AFTER_MIN = 15;
+const BAD_AFTER_MIN = 60;
+
+const rtf = new Intl.RelativeTimeFormat("en", { numeric: "always" });
+
+function ago(ageMs: number): string {
+  const min = Math.round(ageMs / 60_000);
+  if (min < 1) return "Updated just now";
+  if (min < 60) return `Updated ${rtf.format(-min, "minute")}`;
+  const hours = Math.round(min / 60);
+  if (hours < 24) return `Updated ${rtf.format(-hours, "hour")}`;
+  return `Updated ${rtf.format(-Math.round(hours / 24), "day")}`;
+}
 
 let newestSeen = 0;
-let staleTimer: number | undefined;
+let ageTimer: number | undefined;
 
 function paintFreshness(ts: Date): void {
   const el = $("live");
-  const ageMs = Date.now() - ts.getTime();
-  el.hidden = false;
+  const min = (Date.now() - ts.getTime()) / 60_000;
 
-  if (ageMs <= STALE_AFTER_MS) {
-    el.classList.remove("stale");
-    el.lastChild!.textContent = "Live";
-  } else {
-    el.classList.add("stale");
-    const mins = Math.round(ageMs / 60000);
-    el.lastChild!.textContent =
-      mins < 90 ? `No update for ${mins} min` : `No update for ${Math.round(mins / 60)} h`;
-  }
+  el.classList.toggle("warn", min >= WARN_AFTER_MIN && min < BAD_AFTER_MIN);
+  el.classList.toggle("bad", min >= BAD_AFTER_MIN);
+  $("live-text").textContent = ago(Date.now() - ts.getTime());
 
   // Age advances on its own, so re-evaluate even when no data arrives.
-  clearTimeout(staleTimer);
-  staleTimer = setTimeout(() => paintFreshness(ts), 60_000) as unknown as number;
+  clearTimeout(ageTimer);
+  ageTimer = setTimeout(() => paintFreshness(ts), 30_000) as unknown as number;
 }
 
 function markLive(ts: Date): void {
@@ -109,8 +113,6 @@ function renderWind(rows: Reading[]): void {
     "alert",
     last.average !== null && last.average >= WIND_ALERT_KNOTS
   );
-
-  $("stamp").textContent = `Updated ${stampFmt.format(last.ts)}`;
 
   markLive(last.ts);
 
