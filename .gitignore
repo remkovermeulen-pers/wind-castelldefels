@@ -1,0 +1,21 @@
+node_modules/
+*.log
+
+# Build output
+functions/lib/
+web/dist/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.runtimeconfig.json
+
+# Local env / credentials — never commit service-account keys
+.env
+.env.local
+*-service-account*.json
+
+# macOS
+.DS_Store

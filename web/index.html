@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Castelldefels Wind</title>
+    <meta name="description" content="Live wind and kite-zone status for Castelldefels." />
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0b1220" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Wind" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="icon" href="/icons/icon-192.png" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <h1>Castelldefels</h1>
+        <button id="notify" class="notify" type="button" aria-live="polite">
+          Enable alerts
+        </button>
+      </header>
+
+      <main>
+        <section class="hero card" id="hero">
+          <div class="hero-main">
+            <div class="hero-value">
+              <span id="avg">--</span><span class="unit">kn</span>
+            </div>
+            <div class="hero-label">Average wind</div>
+          </div>
+          <dl class="hero-stats">
+            <div><dt>Actual</dt><dd id="actual">--</dd></div>
+            <div><dt>Gusts</dt><dd id="gust">--</dd></div>
+            <div><dt>Direction</dt><dd id="dir">--</dd></div>
+          </dl>
+          <p class="stamp" id="stamp">Waiting for data…</p>
+        </section>
+
+        <section class="card statuses" id="statuses">
+          <h2>Zona kitesurf</h2>
+          <ul class="board" id="board">
+            <li><span>Twintip</span><b class="pill" id="tt-twintip">—</b></li>
+            <li><span>Surf</span><b class="pill" id="tt-surf">—</b></li>
+            <li><span>Foil</span><b class="pill" id="tt-foil">—</b></li>
+          </ul>
+          <p class="stamp" id="zone-stamp">Zone status not polled yet today.</p>
+        </section>
+
+        <section class="card chart-card">
+          <div class="chart-head">
+            <h2>Last 12 hours</h2>
+            <span class="threshold-note">dashed line = 13 kn alert</span>
+          </div>
+          <div class="chart-wrap"><canvas id="chart"></canvas></div>
+          <p class="empty" id="chart-empty" hidden>
+            No measurements yet. The poller runs every 5 minutes between 09:00
+            and 19:00.
+          </p>
+        </section>
+
+        <footer class="foot">
+          <p>
+            Wind: <a href="https://www.17nudos.com" rel="noopener">17nudos.com</a>
+            · Zone:
+            <a href="https://www.mojokite.com/zonakite/castelldefels.php" rel="noopener"
+              >mojokite.com</a
+            >
+          </p>
+          <p class="tz">Times shown in Europe/Madrid (CET/CEST)</p>
+        </footer>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

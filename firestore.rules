@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Measurements are public read-only; the PWA reads them directly.
+// Every write happens through Cloud Functions via the Admin SDK, which
+// bypasses these rules — so nothing here needs to grant client writes.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /readings/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /twintip/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Push tokens and alert state are server-side only.
+    match /tokens/{doc} {
+      allow read, write: if false;
+    }
+
+    match /state/{doc} {
+      allow read, write: if false;
+    }
+  }
+}
