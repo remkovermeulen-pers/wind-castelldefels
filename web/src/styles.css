@@ -380,6 +380,29 @@ main {
   margin-left: 6px;
 }
 
+/* Leading copy of the badge, in front of the card heading. */
+.zone-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.zone-head .zone-icon {
+  margin-left: 0;
+  vertical-align: 0;
+}
+
+/* Before the first poll lands the holder is empty — drop it so the flex gap
+   does not leave a phantom indent in front of the heading. */
+.zone-head > span:empty {
+  display: none;
+}
+
+.zone-head .zone-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
 .zone-icon svg {
   width: 15px;
   height: 15px;

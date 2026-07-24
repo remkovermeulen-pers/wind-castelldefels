@@ -155,6 +155,7 @@ function renderZone(zone: ZoneSnapshot | null): void {
     : `checked ${stampFmt.format(zone.ts)}`;
 
   $("zone-stamp").innerHTML = `Zone ${zone.status} · ${when}` + zoneBadge(zone.status);
+  $("zone-head-icon").innerHTML = zoneBadge(zone.status);
 }
 
 // --- Notifications ------------------------------------------------------
