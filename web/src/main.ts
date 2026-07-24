@@ -26,24 +26,56 @@ function pillClass(v: BoardValue | null): string {
 // --- Wind ---------------------------------------------------------------
 
 /**
- * Firestore's onSnapshot pushes every write straight to the page, so readings
- * appear with no refresh. Flash the indicator when the newest timestamp
- * actually advances, so it is visible that the value just changed.
+ * Freshness indicator.
+ *
+ * Firestore's onSnapshot pushes every write straight to the page, so a new
+ * reading appears without a refresh — but "connected" is not the same as
+ * "current". If the poller is not running, the socket stays happily open while
+ * the data silently ages, so this reports the age of the newest reading rather
+ * than the state of the connection, and flashes only when the data actually
+ * advances.
+ *
+ * The wind poller runs every 5 min, so anything past ~13 min means a tick was
+ * missed or nothing is polling at all.
  */
+const STALE_AFTER_MS = 13 * 60 * 1000;
+
 let newestSeen = 0;
+let staleTimer: number | undefined;
+
+function paintFreshness(ts: Date): void {
+  const el = $("live");
+  const ageMs = Date.now() - ts.getTime();
+  el.hidden = false;
+
+  if (ageMs <= STALE_AFTER_MS) {
+    el.classList.remove("stale");
+    el.lastChild!.textContent = "Live";
+  } else {
+    el.classList.add("stale");
+    const mins = Math.round(ageMs / 60000);
+    el.lastChild!.textContent =
+      mins < 90 ? `No update for ${mins} min` : `No update for ${Math.round(mins / 60)} h`;
+  }
+
+  // Age advances on its own, so re-evaluate even when no data arrives.
+  clearTimeout(staleTimer);
+  staleTimer = setTimeout(() => paintFreshness(ts), 60_000) as unknown as number;
+}
 
 function markLive(ts: Date): void {
   const el = $("live");
-  el.hidden = false;
-  if (ts.getTime() <= newestSeen) return;
-
+  const advanced = ts.getTime() > newestSeen;
   const first = newestSeen === 0;
-  newestSeen = ts.getTime();
-  if (first) return; // don't flash on initial load
 
-  el.classList.remove("tick");
-  void el.offsetWidth; // force reflow so the animation restarts
-  el.classList.add("tick");
+  if (advanced) newestSeen = ts.getTime();
+  paintFreshness(ts);
+
+  if (advanced && !first) {
+    el.classList.remove("tick");
+    void el.offsetWidth; // force reflow so the animation restarts
+    el.classList.add("tick");
+  }
 }
 
 function renderWind(rows: Reading[]): void {

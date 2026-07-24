@@ -309,6 +309,18 @@ main {
   animation: flash 0.7s ease-out;
 }
 
+/* Data has stopped arriving — a steady amber dot, so it cannot be mistaken
+   for the pulsing green "receiving updates" state. */
+.live.stale {
+  color: var(--maybe);
+}
+
+.live.stale i {
+  background: var(--maybe);
+  animation: none;
+  opacity: 1;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 0.45; }
   50% { opacity: 1; }
