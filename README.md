@@ -11,6 +11,7 @@ Castelldefels and pushes an alert when it's worth going out.
 |---|---|---|---|
 | Actual / average / gust wind, direction | [17nudos.com](https://www.17nudos.com) — *Estación meteorológica on-line* | 08:00 – 20:00 | 5 min |
 | Twintip / surf / foil zone status | [mojokite.com](https://www.mojokite.com/zonakite/castelldefels.php) — *Zona kitesurf en Castelldefels* | 12:00 – 21:00 | 10 min |
+| 7-day wind forecast | [windguru.cz/644417](https://www.windguru.cz/644417) — *Castelldefels (BCN), BUNKER BEACH CLUB* | 08:00 – 24:00 | 1 h |
 
 The homepage shows the current reading, the kite-zone board, and a 12-hour
 graph of actual / average / gust. It updates in place: Firestore's `onSnapshot`
@@ -46,9 +47,33 @@ themselves:
   `{"status":"OPEN","foil":"Maybe","surf":"No","twintip":"No"}`. Board values
   are `Yes` / `No` / `Maybe`, shown on the site as SI! / No / Quizás.
 
-Because these are undocumented endpoints, they can change without notice. Both
-parsers throw loudly on unexpected shapes, and failures are logged per-source
-without taking the other source down.
+- **Windguru** has no public API on the free tier, but its own front end talks
+  to `/int/iapi.php`, which serves clean JSON. Two calls are needed:
+  `q=forecast_spot` lists the models available for the spot with their current
+  run parameters, then `q=forecast` returns the series. The run parameters
+  rotate every few hours, so they are read each time rather than hard-coded.
+  `options.wj` confirms the units are knots.
+
+Because these are undocumented endpoints, they can change without notice. Every
+parser throws loudly on unexpected shapes, and failures are logged per-source
+without taking the other sources down.
+
+### Which Windguru model
+
+The site shows a row labelled **WG** — Windguru's own multi-model blend
+(`id_model` 100, "WINDGURU DEFAULT"). It cannot be requested directly: it
+answers `Data not available! (wgmix)` because the blend is assembled server-side
+from ~70 model runs, and the page does not issue a fetch for it that could be
+replayed.
+
+So the stored forecast is **GFS 13 km** (`id_model` 3), the primary underlying
+model — one request, full 16-day range, same spot and units. Change `MODEL` in
+`functions/src/sources/windguru.ts` to use a different one. Getting the WG blend
+itself would mean driving the page in a headless browser and scraping the
+rendered table.
+
+Only local hours **09:00–21:00** are kept; the rest is dropped, since a forecast
+for 03:00 is not worth storing or plotting.
 
 ## History
 

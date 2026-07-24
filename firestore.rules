@@ -16,6 +16,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /forecast/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // A device registers its own push token here, so notifications work
     // without Cloud Functions (those need the Blaze plan). Deliberately
     // write-only from the client:

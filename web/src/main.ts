@@ -1,6 +1,14 @@
 import "./styles.css";
-import { renderChart, WIND_ALERT_KNOTS } from "./chart";
-import { subscribeReadings, subscribeZone, type BoardValue, type Reading, type ZoneSnapshot } from "./data";
+import { renderChart, WIND_ALERT_KNOTS, type Range } from "./chart";
+import {
+  subscribeForecast,
+  subscribeReadings,
+  subscribeZone,
+  type BoardValue,
+  type ForecastPoint,
+  type Reading,
+  type ZoneSnapshot,
+} from "./data";
 import { currentState, disable, enable, type NotifyState } from "./notifications";
 import { renderCompass } from "./compass";
 
@@ -82,14 +90,28 @@ function markLive(ts: Date): void {
   }
 }
 
-function renderWind(rows: Reading[]): void {
+// Latest data from each stream, so the chart can be redrawn whenever any of
+// them changes — including a range button press, which has no new data at all.
+let latestReadings: Reading[] = [];
+let latestForecast: ForecastPoint[] = [];
+let range: Range = "12h";
+
+const RANGE_TITLE: Record<Range, string> = {
+  "12h": "Last 12 hours",
+  "2d": "12 h back · 2 days ahead",
+  week: "12 h back · week ahead",
+};
+
+function drawChart(): void {
   const canvas = $<HTMLCanvasElement>("chart");
   const empty = $("chart-empty");
   // Collapse the fixed-height chart box entirely while empty, otherwise it
   // reserves 260px of blank space above the explanatory message.
   const wrap = canvas.parentElement as HTMLElement;
 
-  if (rows.length === 0) {
+  $("chart-title").textContent = RANGE_TITLE[range];
+
+  if (latestReadings.length === 0 && latestForecast.length === 0) {
     empty.hidden = false;
     wrap.style.display = "none";
     return;
@@ -97,6 +119,13 @@ function renderWind(rows: Reading[]): void {
 
   empty.hidden = true;
   wrap.style.display = "";
+  renderChart(canvas, latestReadings, latestForecast, range);
+}
+
+function renderWind(rows: Reading[]): void {
+  latestReadings = rows;
+  drawChart();
+  if (rows.length === 0) return;
 
   const last = rows[rows.length - 1];
   // Backfilled rows carry no ACTUAL series and can lack a direction.
@@ -115,8 +144,6 @@ function renderWind(rows: Reading[]): void {
   );
 
   markLive(last.ts);
-
-  renderChart(canvas, rows);
 }
 
 // --- Kite zone ----------------------------------------------------------
@@ -268,6 +295,23 @@ async function initNotifications(): Promise<void> {
 
 // --- Boot ---------------------------------------------------------------
 
+function initRangeButtons(): void {
+  for (const btn of document.querySelectorAll<HTMLButtonElement>(".ranges button")) {
+    btn.addEventListener("click", () => {
+      range = btn.dataset.range as Range;
+      for (const b of document.querySelectorAll(".ranges button")) {
+        b.classList.toggle("on", b === btn);
+      }
+      drawChart();
+    });
+  }
+}
+
 subscribeReadings(renderWind);
 subscribeZone(renderZone);
+subscribeForecast((rows) => {
+  latestForecast = rows;
+  drawChart();
+});
+initRangeButtons();
 void initNotifications();

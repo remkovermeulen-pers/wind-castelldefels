@@ -3,8 +3,17 @@ import * as logger from "firebase-functions/logger";
 
 import { fetchWind } from "./sources/nudos";
 import { fetchZoneStatus, isKiteable, label } from "./sources/mojokite";
+import { fetchForecast } from "./sources/windguru";
 import { gateAlerts, sendPush, WIND_ALERT_KNOTS, type AlertKind } from "./alerts";
-import { LAST_ACTIVE_HOUR, localTime, shouldPollWind, shouldPollTwintip } from "./time";
+import {
+  FORECAST_DAYS,
+  isUsefulForecastHour,
+  LAST_ACTIVE_HOUR,
+  localTime,
+  shouldPollForecast,
+  shouldPollWind,
+  shouldPollTwintip,
+} from "./time";
 
 /** Readings older than this are pruned so the free Firestore tier stays ample. */
 const RETENTION_DAYS = 30;
@@ -75,6 +84,26 @@ export async function tick(now: Date): Promise<Record<string, unknown>> {
     } catch (err) {
       logger.error("Twintip poll failed", err);
       result.twintipError = String(err);
+    }
+  }
+
+  // --- Windguru forecast: hourly, 08:00–24:00 local ----------------------
+  // Stored as a single document that each run replaces: only the newest run is
+  // of any use, and one doc keeps the client to a single read.
+  if (shouldPollForecast(t)) {
+    try {
+      const f = await fetchForecast(FORECAST_DAYS, isUsefulForecastHour);
+      await db.collection("forecast").doc("latest").set({
+        fetchedAt: Timestamp.fromDate(now),
+        initstamp: Timestamp.fromMillis(f.initstamp),
+        model: f.model,
+        source: "windguru:644417",
+        points: f.points,
+      });
+      result.forecast = { model: f.model, points: f.points.length };
+    } catch (err) {
+      logger.error("Forecast poll failed", err);
+      result.forecastError = String(err);
     }
   }
 

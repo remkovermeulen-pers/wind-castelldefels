@@ -16,9 +16,14 @@ name: Poll wind and kite-zone status
 
 on:
   schedule:
-    # 08:00-21:00 local is 06:00-19:00 UTC in summer (CEST, +2) and
-    # 07:00-20:00 UTC in winter (CET, +1), so cover 06:00-20:59 UTC.
+    # Wind and zone need the 5-minute cadence up to 21:00 local, which is
+    # 19:00 UTC in summer (CEST, +2) and 20:00 UTC in winter (CET, +1).
     - cron: "*/5 6-20 * * *"
+    # The forecast runs hourly until 24:00 local, so the last fetches are at
+    # 23:00 local = 21:00 UTC (CEST) or 22:00 UTC (CET). Only the top of the
+    # hour is needed here, so this stays a single run per hour rather than
+    # extending the 5-minute cadence over three more hours for nothing.
+    - cron: "0 21-22 * * *"
   workflow_dispatch: # lets you trigger a poll by hand from the Actions tab
 
 concurrency:

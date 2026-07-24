@@ -58,7 +58,26 @@ export function shouldPollTwintip(t: LocalTime): boolean {
 }
 
 /**
+ * The Windguru forecast is fetched once an hour between 08:00 and 24:00 local.
+ * The scheduler ticks every 5 minutes, so only the top of the hour runs.
+ *
+ * 24:00 is the end of the 23:00 hour, so 23:00 is the last fetch of the day.
+ */
+export function shouldPollForecast(t: LocalTime): boolean {
+  return t.hour >= 8 && t.hour <= 23 && t.minute === 0;
+}
+
+/** Forecast steps are only kept for hours worth planning around. */
+export function isUsefulForecastHour(at: Date): boolean {
+  const h = localTime(at).hour;
+  return h >= 9 && h <= 21;
+}
+
+/** How far ahead the stored forecast reaches. */
+export const FORECAST_DAYS = 7;
+
+/**
  * Latest hour any source is still being polled — the tick schedule and the
  * daily retention sweep both key off this.
  */
-export const LAST_ACTIVE_HOUR = 21;
+export const LAST_ACTIVE_HOUR = 23;

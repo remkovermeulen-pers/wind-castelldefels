@@ -8,6 +8,7 @@
   --accent: #38bdf8;
   --gust: #a78bfa;
   --actual: #5eead4;
+  --forecast: #f472b6;
   --yes: #22c55e;
   --maybe: #f59e0b;
   --no: #ef4444;
@@ -471,6 +472,40 @@ main {
 .threshold-note {
   font-size: 0.68rem;
   color: var(--muted);
+  margin: 0 0 12px;
+}
+
+.threshold-note a {
+  color: var(--forecast);
+  text-decoration: none;
+}
+
+/* Range selector */
+.ranges {
+  display: flex;
+  gap: 2px;
+  background: var(--card-2);
+  border-radius: 999px;
+  padding: 2px;
+}
+
+.ranges button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ranges button.on {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.14);
 }
 
 .chart-wrap {
