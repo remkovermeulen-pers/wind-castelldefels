@@ -27,26 +27,42 @@ function pillClass(v: BoardValue | null): string {
 function renderWind(rows: Reading[]): void {
   const canvas = $<HTMLCanvasElement>("chart");
   const empty = $("chart-empty");
+  // Collapse the fixed-height chart box entirely while empty, otherwise it
+  // reserves 260px of blank space above the explanatory message.
+  const wrap = canvas.parentElement as HTMLElement;
 
   if (rows.length === 0) {
     empty.hidden = false;
-    canvas.style.display = "none";
+    wrap.style.display = "none";
     return;
   }
 
   empty.hidden = true;
-  canvas.style.display = "";
+  wrap.style.display = "";
 
   const last = rows[rows.length - 1];
-  $("avg").textContent = String(last.average);
-  $("actual").textContent = `${last.actual} kn`;
-  $("gust").textContent = `${last.gust} kn`;
-  $("dir").textContent = last.windName ? `${last.direction} · ${last.windName}` : last.direction;
+  // Backfilled rows carry no ACTUAL series and can lack a direction.
+  const kn = (v: number | null) => (v === null ? "--" : `${v} kn`);
 
-  $("avg").parentElement!.classList.toggle("alert", last.average >= WIND_ALERT_KNOTS);
+  $("avg").textContent = last.average === null ? "--" : String(last.average);
+  $("actual").textContent = kn(last.actual);
+  $("gust").textContent = kn(last.gust);
+  $("dir").textContent =
+    last.direction === "?"
+      ? "--"
+      : last.windName
+        ? `${last.direction} · ${last.windName}`
+        : last.direction;
+
+  $("avg").parentElement!.classList.toggle(
+    "alert",
+    last.average !== null && last.average >= WIND_ALERT_KNOTS
+  );
 
   const temp = last.tempC === null ? "" : ` · ${last.tempC} °C`;
-  $("stamp").textContent = `Updated ${stampFmt.format(last.ts)}${temp} · ${rows.length} readings today`;
+  const origin = last.backfilled ? " · from published graph" : "";
+  $("stamp").textContent =
+    `Updated ${stampFmt.format(last.ts)}${temp} · ${rows.length} readings${origin}`;
 
   renderChart(canvas, rows);
 }

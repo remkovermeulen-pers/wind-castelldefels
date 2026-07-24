@@ -43,6 +43,53 @@ Because these are undocumented endpoints, they can change without notice. Both
 parsers throw loudly on unexpected shapes, and failures are logged per-source
 without taking the other source down.
 
+## Recovering past data
+
+Neither site keeps an archive. The only history that exists anywhere is the
+12-hour graph 17nudos publishes as a **PNG**, so `scripts/backfill-graph.py`
+reads the numbers back out of the picture:
+
+```bash
+export ACCESS_TOKEN=$(python3 scripts/token_from_firebase_cli.py)
+python3 scripts/backfill-graph.py --dry-run   # inspect first
+python3 scripts/backfill-graph.py
+```
+
+It locates the plot frame and the hourly gridlines in the image itself (rather
+than assuming fixed pixel offsets), then reads the navy "Nominal" and green
+"Racha" curves column by column and maps them onto the 0–30 kn axis. Output is
+bucketed to 5 minutes to match the live poller, and each row is tagged
+`backfilled: true`.
+
+It self-checks: the tail of the extracted curve is compared against the live
+reading and a warning is printed if they disagree. On the first run the tail
+read `9.5 / 12.2` against a live `9.5 / 12.2` — exact.
+
+**What you cannot get this way:**
+- more than ~12 hours — there is no deeper archive to recover
+- the **ACTUAL** series — the graph only plots Nominal and Racha, so
+  backfilled rows have `actual: null` and the graph shows a gap
+- **wind direction** — the red dots use a separate compass scale; decoding it
+  risked silently-wrong values, so it is deliberately skipped (`direction: "?"`)
+- **any kite-zone history** — mojokite returns the current state only
+
+Values are quantised to the pixel grid, so expect about ±0.1 kn.
+
+## Collecting data without Cloud Functions
+
+Until the project is on Blaze (see Setup), `scripts/poll-once.py` runs the same
+poll locally and writes straight to Firestore:
+
+```bash
+export ACCESS_TOKEN=$(python3 scripts/token_from_firebase_cli.py)
+python3 scripts/poll-once.py            # both sources
+python3 scripts/poll-once.py --zone     # mojokite only
+python3 scripts/poll-once.py --wind     # 17nudos only
+```
+
+It does **not** send push notifications — that is the Cloud Function's job, and
+it needs Blaze. Cron examples are in the script's docstring.
+
 ## Architecture
 
 ```

@@ -13,10 +13,16 @@ export type BoardValue = "Yes" | "No" | "Maybe";
 
 export interface Reading {
   ts: Date;
-  actual: number;
-  average: number;
-  gust: number;
+  /**
+   * Null for rows recovered from the published graph: it plots Nominal and
+   * Racha only, so backfilled history has no instantaneous reading.
+   */
+  actual: number | null;
+  average: number | null;
+  gust: number | null;
   direction: string;
+  /** True for rows reconstructed by scripts/backfill-graph.py. */
+  backfilled: boolean;
   windName: string | null;
   tempC: number | null;
   stationTime: string | null;
@@ -49,12 +55,18 @@ export function subscribeReadings(cb: (rows: Reading[]) => void): () => void {
     cb(
       snap.docs.map((d) => {
         const v = d.data();
+        // Number(null) is 0, which would draw a phantom dip at zero — keep
+        // missing series null so Chart.js renders a gap instead.
+        const num = (x: unknown): number | null =>
+          x === null || x === undefined ? null : Number(x);
+
         return {
           ts: (v.ts as Timestamp).toDate(),
-          actual: Number(v.actual),
-          average: Number(v.average),
-          gust: Number(v.gust),
+          actual: num(v.actual),
+          average: num(v.average),
+          gust: num(v.gust),
           direction: String(v.direction ?? "?"),
+          backfilled: v.backfilled === true,
           windName: (v.windName as string) ?? null,
           tempC: v.tempC === null || v.tempC === undefined ? null : Number(v.tempC),
           stationTime: (v.stationTime as string) ?? null,
