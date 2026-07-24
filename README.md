@@ -9,8 +9,8 @@ Castelldefels and pushes an alert when it's worth going out.
 
 | | Source | Window (Europe/Madrid) | Interval |
 |---|---|---|---|
-| Actual / average / gust wind, direction | [17nudos.com](https://www.17nudos.com) — *Estación meteorológica on-line* | 09:00 – 19:00 | 5 min |
-| Twintip / surf / foil zone status | [mojokite.com](https://www.mojokite.com/zonakite/castelldefels.php) — *Zona kitesurf en Castelldefels* | 12:00 – 19:00 | 10 min |
+| Actual / average / gust wind, direction | [17nudos.com](https://www.17nudos.com) — *Estación meteorológica on-line* | 08:00 – 20:00 | 5 min |
+| Twintip / surf / foil zone status | [mojokite.com](https://www.mojokite.com/zonakite/castelldefels.php) — *Zona kitesurf en Castelldefels* | 12:00 – 21:00 | 10 min |
 
 The homepage shows the current reading, the kite-zone board, and a 12-hour
 graph of actual / average / gust. It updates in place: Firestore's `onSnapshot`
@@ -120,23 +120,41 @@ PWA (Firebase Hosting) ──► reads /readings + /twintip live via Firestore
 Scheduling uses the IANA zone `Europe/Madrid` rather than a fixed offset, so the
 windows stay correct across the CET/CEST switch.
 
+## Where the poller runs
+
+There are two interchangeable hosts for the same `tick()` function. **Run one,
+not both** — otherwise every reading is stored twice. (Alerts would still fire
+once, since both share the `state/alerts` document, but the graph would double
+up.)
+
+| | GitHub Actions | Cloud Functions |
+|---|---|---|
+| Firebase plan | **Spark (free)** | Blaze required |
+| Punctuality | approximate — GitHub delays scheduled runs under load, sometimes 10+ min, and drops them at peak | to the minute |
+| Cost | free on a public repo; see note below for private | ~€0 within free tier, card on file required |
+| Config | `.github/workflows/poll.yml` | `functions/src/index.ts` |
+
+The default is **GitHub Actions**, because it needs no payment method. Firestore
+writes and FCM sends are both free on Spark — only Cloud *Scheduler* ever
+needed Blaze.
+
+### Actions minutes
+
+The schedule fires every 5 min across a 15-hour UTC window ≈ **180 runs/day**,
+and GitHub bills each run rounded up to a whole minute ≈ **5,400 min/month**.
+
+- **Public repo:** Actions minutes are unlimited and free. Nothing to do.
+- **Private repo:** the free allowance is 2,000 min/month, so this overruns it.
+  Either make the repo public, or widen the cron interval — `*/15` lands at
+  ~1,800 min/month.
+
+To switch to Cloud Functions instead, upgrade at
+[the console](https://console.firebase.google.com/project/wind-castelldefels/usage/details),
+run `firebase deploy --only functions`, and disable the workflow.
+
 ## Setup
 
-Two steps need the Firebase console and cannot be scripted:
-
-### 1. Upgrade to the Blaze plan (required)
-
-Cloud Functions and Cloud Scheduler are not available on the free Spark plan.
-
-→ https://console.firebase.google.com/project/wind-castelldefels/usage/details
-
-Blaze is pay-as-you-go with a free monthly allowance. This workload sits far
-inside it — roughly 4,900 function invocations and 5,000 Firestore writes per
-month, against free tiers of 2,000,000 and 600,000 respectively. **Expected
-cost: €0/month.** A payment method is still required on file. Set a budget alert
-if you want a hard guard.
-
-### 2. Generate the Web Push certificate (VAPID key)
+### Generate the Web Push certificate (VAPID key)
 
 → Project settings → Cloud Messaging → Web configuration → **Generate key pair**
 
@@ -148,11 +166,21 @@ Copy the key pair value into `web/src/firebase-config.ts`:
 export const vapidKey = "BEl...";   // replace __VAPID_KEY__
 ```
 
-### 3. Deploy
+Then redeploy the frontend:
 
 ```bash
-npm --prefix web run build && firebase deploy
+npm --prefix web run build && firebase deploy --only hosting
 ```
+
+Until that key exists the button reads "Alerts not set up yet" and is disabled —
+the graph and live status work regardless.
+
+### Service account (already configured)
+
+The workflow authenticates as `firebase-adminsdk-fbsvc@…`, whose JSON key is
+stored in the repo secret `FIREBASE_SERVICE_ACCOUNT`. To rotate it, create a new
+key in the console and re-run `gh secret set FIREBASE_SERVICE_ACCOUNT < key.json`.
+Never commit the key — `.gitignore` covers `*-service-account*.json`.
 
 ## Local development
 

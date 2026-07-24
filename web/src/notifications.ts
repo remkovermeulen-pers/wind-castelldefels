@@ -1,6 +1,7 @@
 import { getToken, onMessage } from "firebase/messaging";
-import { getMessagingIfSupported } from "./firebase";
-import { functionsBase, vapidKey } from "./firebase-config";
+import { deleteDoc, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { db, getMessagingIfSupported } from "./firebase";
+import { vapidKey } from "./firebase-config";
 
 const TOKEN_KEY = "wind.fcmToken";
 
@@ -77,12 +78,14 @@ export async function enable(): Promise<NotifyState> {
   });
   if (!token) return { kind: "off" };
 
-  const res = await fetch(`${functionsBase}/registerToken`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
-  });
-  if (!res.ok) throw new Error(`registerToken failed: HTTP ${res.status}`);
+  // Written straight to Firestore rather than through a Cloud Function, so
+  // push works on the free plan too (see firestore.rules — the tokens
+  // collection is create/delete only and never readable by clients).
+  await setDoc(
+    doc(db, "tokens", token),
+    { userAgent: navigator.userAgent.slice(0, 300), updatedAt: serverTimestamp() },
+    { merge: true }
+  );
 
   localStorage.setItem(TOKEN_KEY, token);
 
@@ -99,11 +102,7 @@ export async function enable(): Promise<NotifyState> {
 export async function disable(): Promise<NotifyState> {
   const token = localStorage.getItem(TOKEN_KEY);
   if (token) {
-    await fetch(`${functionsBase}/unregisterToken`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
-    }).catch(() => undefined);
+    await deleteDoc(doc(db, "tokens", token)).catch(() => undefined);
     localStorage.removeItem(TOKEN_KEY);
   }
   return { kind: "off" };

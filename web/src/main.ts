@@ -168,7 +168,7 @@ function siteStamp(raw: string | null): string | null {
 function renderZone(zone: ZoneSnapshot | null): void {
   if (!zone) {
     $("zone-stamp").textContent =
-      "Zone status not polled yet — checks run every 10 min from 12:00.";
+      "Zone status not polled yet — checks run every 10 min, 12:00–21:00.";
     return;
   }
 
