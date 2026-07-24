@@ -39,20 +39,26 @@ export function localTime(at: Date = new Date()): LocalTime {
   };
 }
 
-/** Inclusive on both ends, e.g. 09:00–19:00 includes exactly 19:00. */
+/** Inclusive on both ends, e.g. withinWindow(t, 8, 20) includes exactly 20:00. */
 export function withinWindow(t: LocalTime, startHour: number, endHour: number): boolean {
   return t.minutesOfDay >= startHour * 60 && t.minutesOfDay <= endHour * 60;
 }
 
-/** Wind is sampled every 5 minutes between 09:00 and 19:00 local. */
+/** Wind is sampled every 5 minutes between 08:00 and 20:00 local. */
 export function shouldPollWind(t: LocalTime): boolean {
-  return withinWindow(t, 9, 19);
+  return withinWindow(t, 8, 20);
 }
 
 /**
- * Twintip status is sampled every 10 minutes between 12:00 and 19:00 local.
+ * Twintip status is sampled every 10 minutes between 12:00 and 21:00 local.
  * The scheduler ticks every 5 minutes, so only even 10-minute slots run.
  */
 export function shouldPollTwintip(t: LocalTime): boolean {
-  return withinWindow(t, 12, 19) && t.minute % 10 === 0;
+  return withinWindow(t, 12, 21) && t.minute % 10 === 0;
 }
+
+/**
+ * Latest hour any source is still being polled — the tick schedule and the
+ * daily retention sweep both key off this.
+ */
+export const LAST_ACTIVE_HOUR = 21;

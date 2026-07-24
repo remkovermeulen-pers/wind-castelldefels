@@ -16,9 +16,21 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Push tokens and alert state are server-side only.
-    match /tokens/{doc} {
-      allow read, write: if false;
+    // A device registers its own push token here, so notifications work
+    // without Cloud Functions (those need the Blaze plan). Deliberately
+    // write-only from the client:
+    //   - never readable, so the token list cannot be harvested
+    //   - create/update restricted to the two expected fields
+    //   - delete allowed so "turn alerts off" works from the device
+    // Anyone can add a junk document; the blast radius is a wasted FCM send
+    // that gets pruned on its first permanent failure.
+    match /tokens/{token} {
+      allow get, list: if false;
+      allow create, update: if request.resource.data.keys().hasOnly(["userAgent", "updatedAt"])
+                            && request.resource.data.userAgent is string
+                            && request.resource.data.userAgent.size() <= 300
+                            && token.size() <= 4096;
+      allow delete: if true;
     }
 
     match /state/{doc} {

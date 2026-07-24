@@ -1,0 +1,65 @@
+name: Poll wind and kite-zone status
+
+# Runs the same tick() the Cloud Function would, but on GitHub's schedulers —
+# which means the whole backend works on Firebase's free Spark plan. Firestore
+# writes and FCM sends are both free; only Cloud Scheduler needed Blaze.
+#
+# Cron is UTC and does not follow DST, so the window is widened to cover both
+# offsets and the real Europe/Madrid gates are enforced inside tick() (see
+# functions/src/time.ts, which uses the IANA zone): wind 08:00-20:00, kite zone
+# 12:00-21:00. Ticks outside the local window exit in milliseconds without
+# touching either source.
+#
+# Caveat: GitHub delays scheduled workflows under load, sometimes by 10+
+# minutes, and drops runs entirely at peak times. Expect an approximate
+# cadence, not a guaranteed one.
+
+on:
+  schedule:
+    # 08:00-21:00 local is 06:00-19:00 UTC in summer (CEST, +2) and
+    # 07:00-20:00 UTC in winter (CET, +1), so cover 06:00-20:59 UTC.
+    - cron: "*/5 6-20 * * *"
+  workflow_dispatch: # lets you trigger a poll by hand from the Actions tab
+
+concurrency:
+  # Never let a delayed run pile up on top of the next one.
+  group: poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci --omit=dev --ignore-scripts && npm i --no-save typescript
+
+      - name: Build
+        working-directory: functions
+        run: npx tsc
+
+      - name: Write service-account credentials
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not set."
+            exit 1
+          fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+
+      - name: Poll
+        working-directory: functions
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: node lib/runner.js
