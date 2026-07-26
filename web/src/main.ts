@@ -101,13 +101,11 @@ interface Current {
   ts: Date;
 }
 
-// Last reading count from Firestore, so a live update can keep showing it.
-let readingCount = 0;
-
 /**
- * Paints the hero card. Shared by the 5-minute Firestore history and the
+ * Paints the hero card. Shared by the once-a-minute Firestore history and the
  * ~15-second live feed, so both render identically; whichever arrived most
- * recently wins, and the live feed dominates while the app is open.
+ * recently wins, and the live feed dominates while the app is open. Currency is
+ * shown by the freshness line (#live) via markLive.
  */
 function paintCurrent(c: Current): void {
   const val = (v: number | null) => (v === null ? "--" : String(v));
@@ -115,19 +113,12 @@ function paintCurrent(c: Current): void {
   $("avg").textContent = val(c.average);
   $("actual").textContent = val(c.actual);
   $("gust").textContent = val(c.gust);
-  // The Direction cell holds the rose itself; the local wind name (Levante,
-  // Garbí…) goes on the timestamp line, where there is room for it.
   renderCompass($("dir"), c.direction, { size: 76, compact: true });
 
   $("avg").parentElement!.classList.toggle(
     "alert",
     c.average !== null && c.average >= WIND_ALERT_KNOTS
   );
-
-  const name = c.windName ? ` · ${c.windName}` : "";
-  const temp = c.tempC === null ? "" : ` · ${c.tempC} °C`;
-  const count = readingCount ? ` · ${readingCount} readings` : "";
-  $("stamp").textContent = `Updated ${stampFmt.format(c.ts)}${name}${temp}${count}`;
 
   markLive(c.ts);
 }
@@ -149,7 +140,6 @@ function renderWind(rows: Reading[]): void {
   wrap.style.display = "";
   renderChart(canvas, rows);
 
-  readingCount = rows.length;
   paintCurrent({ ...rows[rows.length - 1] });
 }
 
