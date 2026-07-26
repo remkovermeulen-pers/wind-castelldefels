@@ -10,6 +10,7 @@ import {
 import { currentState, disable, enable, type NotifyState } from "./notifications";
 import { renderCompass } from "./compass";
 import { mountWindguru } from "./windguru";
+import { startLive } from "./live";
 
 const $ = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
@@ -89,6 +90,48 @@ function markLive(ts: Date): void {
   }
 }
 
+/** Everything the hero card shows for the current moment. */
+interface Current {
+  average: number | null;
+  actual: number | null;
+  gust: number | null;
+  direction: string;
+  windName: string | null;
+  tempC: number | null;
+  ts: Date;
+}
+
+// Last reading count from Firestore, so a live update can keep showing it.
+let readingCount = 0;
+
+/**
+ * Paints the hero card. Shared by the 5-minute Firestore history and the
+ * ~15-second live feed, so both render identically; whichever arrived most
+ * recently wins, and the live feed dominates while the app is open.
+ */
+function paintCurrent(c: Current): void {
+  const val = (v: number | null) => (v === null ? "--" : String(v));
+
+  $("avg").textContent = val(c.average);
+  $("actual").textContent = val(c.actual);
+  $("gust").textContent = val(c.gust);
+  // The Direction cell holds the rose itself; the local wind name (Levante,
+  // Garbí…) goes on the timestamp line, where there is room for it.
+  renderCompass($("dir"), c.direction, { size: 76, compact: true });
+
+  $("avg").parentElement!.classList.toggle(
+    "alert",
+    c.average !== null && c.average >= WIND_ALERT_KNOTS
+  );
+
+  const name = c.windName ? ` · ${c.windName}` : "";
+  const temp = c.tempC === null ? "" : ` · ${c.tempC} °C`;
+  const count = readingCount ? ` · ${readingCount} readings` : "";
+  $("stamp").textContent = `Updated ${stampFmt.format(c.ts)}${name}${temp}${count}`;
+
+  markLive(c.ts);
+}
+
 function renderWind(rows: Reading[]): void {
   const canvas = $<HTMLCanvasElement>("chart");
   const empty = $("chart-empty");
@@ -106,23 +149,8 @@ function renderWind(rows: Reading[]): void {
   wrap.style.display = "";
   renderChart(canvas, rows);
 
-  const last = rows[rows.length - 1];
-  // Backfilled rows carry no ACTUAL series and can lack a direction.
-  const val = (v: number | null) => (v === null ? "--" : String(v));
-
-  $("avg").textContent = val(last.average);
-  $("actual").textContent = val(last.actual);
-  $("gust").textContent = val(last.gust);
-  // The Direction cell holds the rose itself; the local wind name (Levante,
-  // Garbí…) goes on the timestamp line, where there is room for it.
-  renderCompass($("dir"), last.direction, { size: 76, compact: true });
-
-  $("avg").parentElement!.classList.toggle(
-    "alert",
-    last.average !== null && last.average >= WIND_ALERT_KNOTS
-  );
-
-  markLive(last.ts);
+  readingCount = rows.length;
+  paintCurrent({ ...rows[rows.length - 1] });
 }
 
 // --- Kite zone ----------------------------------------------------------
@@ -278,3 +306,16 @@ subscribeReadings(renderWind);
 subscribeZone(renderZone);
 mountWindguru($("windguru"));
 void initNotifications();
+
+// Near-live current wind while the app is open, layered over the stored history.
+startLive((r) =>
+  paintCurrent({
+    average: r.average,
+    actual: r.actual,
+    gust: r.gust,
+    direction: r.direction,
+    windName: r.windName,
+    tempC: r.tempC,
+    ts: new Date(r.at),
+  })
+);

@@ -48,6 +48,23 @@ function css(name: string): string {
 
 type Pt = { x: number; y: number | null };
 
+const HOUR_MS = 3600_000;
+
+/**
+ * Replaces the axis ticks with whole-hour marks across the visible range.
+ * Madrid is a whole-hour offset from UTC, so a whole UTC hour is also a whole
+ * local hour. The step grows with the span to keep roughly six labels.
+ */
+function wholeHourTicks(axis: { min: number; max: number; ticks: { value: number }[] }): void {
+  const spanH = (axis.max - axis.min) / HOUR_MS;
+  const step = Math.max(1, Math.ceil(spanH / 6));
+  const first = Math.ceil(axis.min / HOUR_MS) * HOUR_MS;
+
+  const ticks: { value: number }[] = [];
+  for (let t = first; t <= axis.max; t += step * HOUR_MS) ticks.push({ value: t });
+  axis.ticks = ticks;
+}
+
 let chart: Chart | null = null;
 
 export function renderChart(canvas: HTMLCanvasElement, readings: Reading[]): void {
@@ -136,11 +153,13 @@ export function renderChart(canvas: HTMLCanvasElement, readings: Reading[]): voi
           min,
           max,
           grid: { display: false },
+          // Place ticks on whole hours rather than wherever the data starts,
+          // stepped so the ~12h span shows a handful of round-hour labels.
+          afterBuildTicks: wholeHourTicks,
           ticks: {
             color: muted,
             maxRotation: 0,
-            autoSkip: true,
-            maxTicksLimit: 6,
+            autoSkip: false,
             font: { size: 10 },
             callback: (v) => hhmm.format(new Date(Number(v))),
           },

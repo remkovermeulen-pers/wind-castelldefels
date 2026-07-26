@@ -14,17 +14,16 @@ name: Poll wind and kite-zone status
 # minutes, and drops runs entirely at peak times. Expect an approximate
 # cadence, not a guaranteed one.
 
+# The schedule is DISABLED: the poller now runs on Firebase Cloud Scheduler
+# (functions/src/index.ts `poll`), which fires reliably every 5 minutes. Running
+# both would store every reading twice. This workflow is kept only as a
+# manual/off-Firebase fallback — re-enable the `schedule:` block below to use it,
+# and disable the Cloud Function first so they don't double-write. It needs a
+# FIREBASE_SERVICE_ACCOUNT repo secret.
 on:
-  schedule:
-    # Wind and zone need the 5-minute cadence up to 21:00 local, which is
-    # 19:00 UTC in summer (CEST, +2) and 20:00 UTC in winter (CET, +1).
-    - cron: "*/5 6-20 * * *"
-    # The forecast runs hourly until 24:00 local, so the last fetches are at
-    # 23:00 local = 21:00 UTC (CEST) or 22:00 UTC (CET). Only the top of the
-    # hour is needed here, so this stays a single run per hour rather than
-    # extending the 5-minute cadence over three more hours for nothing.
-    - cron: "0 21-22 * * *"
   workflow_dispatch: # lets you trigger a poll by hand from the Actions tab
+  # schedule:
+  #   - cron: "*/5 6-20 * * *"
 
 concurrency:
   # Never let a delayed run pile up on top of the next one.
