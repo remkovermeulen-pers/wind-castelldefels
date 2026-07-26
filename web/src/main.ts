@@ -1,16 +1,15 @@
 import "./styles.css";
-import { renderChart, WIND_ALERT_KNOTS, type Range } from "./chart";
+import { renderChart, WIND_ALERT_KNOTS } from "./chart";
 import {
-  subscribeForecast,
   subscribeReadings,
   subscribeZone,
   type BoardValue,
-  type ForecastPoint,
   type Reading,
   type ZoneSnapshot,
 } from "./data";
 import { currentState, disable, enable, type NotifyState } from "./notifications";
 import { renderCompass } from "./compass";
+import { mountWindguru } from "./windguru";
 
 const $ = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
@@ -90,28 +89,14 @@ function markLive(ts: Date): void {
   }
 }
 
-// Latest data from each stream, so the chart can be redrawn whenever any of
-// them changes — including a range button press, which has no new data at all.
-let latestReadings: Reading[] = [];
-let latestForecast: ForecastPoint[] = [];
-let range: Range = "12h";
-
-const RANGE_TITLE: Record<Range, string> = {
-  "12h": "Last 12 hours",
-  "2d": "12 h back · 2 days ahead",
-  week: "12 h back · week ahead",
-};
-
-function drawChart(): void {
+function renderWind(rows: Reading[]): void {
   const canvas = $<HTMLCanvasElement>("chart");
   const empty = $("chart-empty");
   // Collapse the fixed-height chart box entirely while empty, otherwise it
   // reserves 260px of blank space above the explanatory message.
   const wrap = canvas.parentElement as HTMLElement;
 
-  $("chart-title").textContent = RANGE_TITLE[range];
-
-  if (latestReadings.length === 0 && latestForecast.length === 0) {
+  if (rows.length === 0) {
     empty.hidden = false;
     wrap.style.display = "none";
     return;
@@ -119,13 +104,7 @@ function drawChart(): void {
 
   empty.hidden = true;
   wrap.style.display = "";
-  renderChart(canvas, latestReadings, latestForecast, range);
-}
-
-function renderWind(rows: Reading[]): void {
-  latestReadings = rows;
-  drawChart();
-  if (rows.length === 0) return;
+  renderChart(canvas, rows);
 
   const last = rows[rows.length - 1];
   // Backfilled rows carry no ACTUAL series and can lack a direction.
@@ -295,23 +274,7 @@ async function initNotifications(): Promise<void> {
 
 // --- Boot ---------------------------------------------------------------
 
-function initRangeButtons(): void {
-  for (const btn of document.querySelectorAll<HTMLButtonElement>(".ranges button")) {
-    btn.addEventListener("click", () => {
-      range = btn.dataset.range as Range;
-      for (const b of document.querySelectorAll(".ranges button")) {
-        b.classList.toggle("on", b === btn);
-      }
-      drawChart();
-    });
-  }
-}
-
 subscribeReadings(renderWind);
 subscribeZone(renderZone);
-subscribeForecast((rows) => {
-  latestForecast = rows;
-  drawChart();
-});
-initRangeButtons();
+mountWindguru($("windguru"));
 void initNotifications();

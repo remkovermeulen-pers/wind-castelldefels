@@ -1,0 +1,13 @@
+# Netlify hosts the scheduled poller only — the PWA itself is on Firebase
+# Hosting, next to the Firestore data it reads.
+
+[build]
+  publish = "netlify/public"
+  command = "echo 'scheduler only — nothing to build'"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  # firebase-admin resolves gRPC and protobuf files at runtime, which esbuild
+  # cannot inline. Shipping it as a real node_modules dependency instead.
+  external_node_modules = ["firebase-admin"]

@@ -1,6 +1,5 @@
 import {
   collection,
-  doc,
   limit,
   onSnapshot,
   orderBy,
@@ -100,39 +99,6 @@ export function subscribeReadings(cb: (rows: Reading[]) => void): () => void {
       }),
     cb
   );
-}
-
-export interface ForecastPoint {
-  ts: Date;
-  wind: number | null;
-  gust: number | null;
-  dir: number | null;
-}
-
-/**
- * Live stream of the Windguru forecast.
- *
- * A single document that each hourly fetch replaces, so this is one read
- * rather than a query — only the newest model run is of any use.
- */
-export function subscribeForecast(cb: (rows: ForecastPoint[]) => void): () => void {
-  return onSnapshot(doc(db, "forecast", "latest"), (snap) => {
-    const v = snap.data();
-    if (!v?.points) {
-      cb([]);
-      return;
-    }
-    cb(
-      (v.points as Record<string, unknown>[])
-        .map((p) => ({
-          ts: new Date(Number(p.ts)),
-          wind: num(p.wind),
-          gust: num(p.gust),
-          dir: num(p.dir),
-        }))
-        .sort((a, b) => a.ts.getTime() - b.ts.getTime())
-    );
-  });
 }
 
 /** Live stream of the most recent kite-zone board reading. */

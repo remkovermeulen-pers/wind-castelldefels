@@ -1,0 +1,15 @@
+{
+  "name": "wind-castelldefels",
+  "private": true,
+  "description": "Root manifest so Netlify can bundle the scheduled poller in netlify/functions.",
+  "type": "module",
+  "engines": {
+    "node": "22"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^3.0.0"
+  }
+}

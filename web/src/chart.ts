@@ -9,7 +9,7 @@ import {
   Filler,
   type ChartDataset,
 } from "chart.js";
-import type { ForecastPoint, Reading } from "./data";
+import type { Reading } from "./data";
 
 Chart.register(
   LineController,
@@ -24,42 +24,19 @@ Chart.register(
 /** Average wind at or above this many knots triggers a push (mirrors alerts.ts). */
 export const WIND_ALERT_KNOTS = 13;
 
-/** How far back observations are shown, regardless of the forward range. */
+/** How much history the observation chart shows. */
 export const HISTORY_MS = 12 * 60 * 60 * 1000;
 
-export type Range = "12h" | "2d" | "week";
-
-/** Milliseconds of forecast shown to the right of "now". */
-const FORWARD: Record<Range, number> = {
-  "12h": 0,
-  "2d": 2 * 864e5,
-  week: 7 * 864e5,
-};
-
-const hhmm = new Intl.DateTimeFormat("en-GB", {
+const full = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Madrid",
+  weekday: "short",
   hour: "2-digit",
   minute: "2-digit",
   hourCycle: "h23",
 });
 
-const dayHour = new Intl.DateTimeFormat("en-GB", {
+const hhmm = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Madrid",
-  weekday: "short",
-  hour: "2-digit",
-  hourCycle: "h23",
-});
-
-const dayOnly = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Europe/Madrid",
-  weekday: "short",
-});
-
-const full = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Europe/Madrid",
-  weekday: "short",
-  day: "numeric",
-  month: "short",
   hour: "2-digit",
   minute: "2-digit",
   hourCycle: "h23",
@@ -71,66 +48,20 @@ function css(name: string): string {
 
 type Pt = { x: number; y: number | null };
 
-/**
- * The forecast only keeps daytime hours (09:00–21:00), so consecutive points
- * jump across each night. Without an explicit null in the gap Chart.js draws a
- * straight line through the small hours, inventing a forecast that was never
- * issued.
- */
-function breakNightGaps(points: Pt[], maxGapMs = 3.5 * 3600_000): Pt[] {
-  const out: Pt[] = [];
-  for (let i = 0; i < points.length; i++) {
-    out.push(points[i]);
-    const next = points[i + 1];
-    if (next && next.x - points[i].x > maxGapMs) {
-      out.push({ x: points[i].x + (next.x - points[i].x) / 2, y: null });
-    }
-  }
-  return out;
-}
-
 let chart: Chart | null = null;
 
-/**
- * Current x-axis width, in ms, used to pick the tick format.
- *
- * Held at module level rather than read from the enclosing render call: the
- * tick callback is created once with the chart and would otherwise capture the
- * span from the very first render, so switching range updated the axis bounds
- * but kept formatting labels for the old one.
- */
-let axisSpan = 0;
-
-export function renderChart(
-  canvas: HTMLCanvasElement,
-  readings: Reading[],
-  forecast: ForecastPoint[],
-  range: Range
-): void {
+export function renderChart(canvas: HTMLCanvasElement, readings: Reading[]): void {
   const muted = css("--muted");
   const grid = css("--line");
   const now = Date.now();
-
   const min = now - HISTORY_MS;
-  const max = now + FORWARD[range];
-  axisSpan = max - min;
 
   const obs = readings.filter((r) => r.ts.getTime() >= min);
+  const max = obs.length ? Math.max(now, obs[obs.length - 1].ts.getTime()) : now;
   const at = (r: Reading, v: number | null): Pt => ({ x: r.ts.getTime(), y: v });
 
   // Below ~40 samples the bare lines stop reading as data, so mark each one.
   const pointRadius = obs.length <= 40 ? 3 : 0;
-
-  const fc = breakNightGaps(
-    forecast
-      .filter((p) => p.ts.getTime() >= min && p.ts.getTime() <= max)
-      .map((p) => ({ x: p.ts.getTime(), y: p.wind }))
-  );
-  const fcGust = breakNightGaps(
-    forecast
-      .filter((p) => p.ts.getTime() >= min && p.ts.getTime() <= max)
-      .map((p) => ({ x: p.ts.getTime(), y: p.gust }))
-  );
 
   const datasets: ChartDataset<"line", Pt[]>[] = [
     {
@@ -164,48 +95,20 @@ export function renderChart(
       pointBackgroundColor: css("--actual"),
       tension: 0.3,
     },
+    {
+      // Threshold drawn as a two-point line so it always spans the axis.
+      label: `${WIND_ALERT_KNOTS} kn`,
+      data: [
+        { x: min, y: WIND_ALERT_KNOTS },
+        { x: max, y: WIND_ALERT_KNOTS },
+      ],
+      borderColor: muted,
+      borderWidth: 1,
+      borderDash: [6, 5],
+      pointRadius: 0,
+      pointHitRadius: 0,
+    },
   ];
-
-  if (range !== "12h" && fc.length) {
-    datasets.push(
-      {
-        label: "Forecast gusts",
-        data: fcGust,
-        borderColor: css("--gust"),
-        borderWidth: 1,
-        borderDash: [5, 4],
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        tension: 0.3,
-        spanGaps: false,
-      },
-      {
-        label: "Forecast",
-        data: fc,
-        borderColor: css("--forecast"),
-        borderWidth: 2,
-        borderDash: [5, 4],
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        tension: 0.3,
-        spanGaps: false,
-      }
-    );
-  }
-
-  // Threshold drawn as a two-point line so it spans the axis at any range.
-  datasets.push({
-    label: `${WIND_ALERT_KNOTS} kn`,
-    data: [
-      { x: min, y: WIND_ALERT_KNOTS },
-      { x: max, y: WIND_ALERT_KNOTS },
-    ],
-    borderColor: muted,
-    borderWidth: 1,
-    borderDash: [6, 5],
-    pointRadius: 0,
-    pointHitRadius: 0,
-  });
 
   const data = { datasets };
 
@@ -239,12 +142,7 @@ export function renderChart(
             autoSkip: true,
             maxTicksLimit: 6,
             font: { size: 10 },
-            callback: (v) => {
-              const t = new Date(Number(v));
-              if (axisSpan <= 36 * 3600_000) return hhmm.format(t);
-              if (axisSpan <= 3 * 864e5) return dayHour.format(t);
-              return dayOnly.format(t);
-            },
+            callback: (v) => hhmm.format(new Date(Number(v))),
           },
         },
         y: {

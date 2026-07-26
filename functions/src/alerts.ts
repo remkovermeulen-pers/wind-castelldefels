@@ -1,6 +1,6 @@
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
-import * as logger from "firebase-functions/logger";
+import { logger } from "./log";
 import type { LocalTime } from "./time";
 
 /** Average wind at or above this many knots triggers a push. */
