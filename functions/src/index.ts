@@ -5,6 +5,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 
 import { tick } from "./poller";
+import { fetchWind } from "./sources/nudos";
 import { ZONE } from "./time";
 
 initializeApp();
@@ -39,6 +40,29 @@ export const pollNow = onRequest(
   { region: REGION, timeoutSeconds: 60, cors: true },
   async (_req, res) => {
     res.json(await tick(new Date()));
+  }
+);
+
+/**
+ * Live current-wind reader for the PWA.
+ *
+ * 17nudos refreshes every ~5 seconds but sends no CORS headers, so the browser
+ * cannot read it directly. This proxies it — the same parser the poller uses —
+ * so the app can show a near-live reading while open. It writes nothing; the
+ * scheduled tick still owns history and alerts. A short CDN cache collapses
+ * many viewers onto one upstream fetch.
+ */
+export const live = onRequest(
+  { region: REGION, timeoutSeconds: 20, cors: true },
+  async (_req, res) => {
+    try {
+      const w = await fetchWind();
+      res.set("Cache-Control", "public, max-age=5");
+      res.json({ ...w, at: Date.now() });
+    } catch (err) {
+      logger.error("live fetch failed", err);
+      res.status(502).json({ error: String(err) });
+    }
   }
 );
 
