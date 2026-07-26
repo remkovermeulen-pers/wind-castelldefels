@@ -77,8 +77,9 @@ export function renderChart(canvas: HTMLCanvasElement, readings: Reading[]): voi
   const max = obs.length ? Math.max(now, obs[obs.length - 1].ts.getTime()) : now;
   const at = (r: Reading, v: number | null): Pt => ({ x: r.ts.getTime(), y: v });
 
-  // Below ~40 samples the bare lines stop reading as data, so mark each one.
-  const pointRadius = obs.length <= 40 ? 3 : 0;
+  // No point markers: at one reading a minute the series are dense enough that
+  // dots just clutter the lines. Hovering still shows a point via the tooltip.
+  const pointRadius = 0;
 
   const datasets: ChartDataset<"line", Pt[]>[] = [
     {
