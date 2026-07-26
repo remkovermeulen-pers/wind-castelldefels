@@ -18,7 +18,8 @@ export const firebaseConfig = {
  * Web Push certificate (VAPID public key).
  * Firebase console → Project settings → Cloud Messaging → Web Push certificates.
  */
-export const vapidKey = "__VAPID_KEY__";
+export const vapidKey =
+  "BIvhaABfeUAdCtsAEhTiJEVJNZyA4W0BwWt6E7nveoLDxbbR-o2NW6KMCx5mBSpVTzUpZaUmq0uamq95kH-jPMY";
 
 /** Base URL for the Cloud Functions HTTP endpoints (region europe-west1). */
 export const functionsBase = "https://europe-west1-wind-castelldefels.cloudfunctions.net";
