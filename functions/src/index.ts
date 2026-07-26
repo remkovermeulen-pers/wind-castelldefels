@@ -13,17 +13,17 @@ initializeApp();
 const REGION = "europe-west1";
 
 /**
- * Ticks every 5 minutes across the widest window either source needs — wind
- * runs 08:00–20:00 and the kite zone 12:00–21:00, so the schedule spans
- * 08:00–21:00. Cron runs in Europe/Madrid so this tracks CET/CEST.
+ * Ticks every minute across the widest window either source needs — wind runs
+ * 08:00–20:00 and the kite zone 12:00–21:00, so the schedule spans 08:00–21:00.
+ * Cron runs in Europe/Madrid so this tracks CET/CEST.
  *
- * Requires the Blaze plan. The GitHub Actions workflow in
- * .github/workflows/poll.yml runs the same `tick()` on the free plan —
- * run one or the other, not both, or every reading is stored twice.
+ * Wind is stored on every tick (once a minute); the kite zone has its own
+ * 10-minute gate inside tick(), so a per-minute schedule does not over-poll it.
+ * Volume stays well inside the free tiers (~23k invocations, ~24k writes/month).
  */
 export const poll = onSchedule(
   {
-    schedule: "*/5 8-21 * * *",
+    schedule: "* 8-21 * * *",
     timeZone: ZONE,
     region: REGION,
     timeoutSeconds: 60,
