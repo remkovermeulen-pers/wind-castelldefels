@@ -6,11 +6,25 @@ import type { LocalTime } from "./time";
 /** Average wind at or above this many knots triggers a push. */
 export const WIND_ALERT_KNOTS = 13;
 
-export type AlertKind = "twintip" | "wind";
+/**
+ * - `twintip`   — status became kiteable (Quizás or SI!)
+ * - `twintipYes`— status became SI! specifically (the definite "go")
+ * - `wind`      — average reached the knots threshold
+ */
+export type AlertKind = "twintip" | "twintipYes" | "wind";
+
+type ArmedKey = "twintipArmed" | "twintipYesArmed" | "windArmed";
+
+const ARMED_KEY: Record<AlertKind, ArmedKey> = {
+  twintip: "twintipArmed",
+  twintipYes: "twintipYesArmed",
+  wind: "windArmed",
+};
 
 interface AlertState {
   day: string;
   twintipArmed: boolean;
+  twintipYesArmed: boolean;
   windArmed: boolean;
 }
 
@@ -41,15 +55,15 @@ export async function gateAlerts(
     const state: AlertState =
       prev && prev.day === t.day
         ? { ...prev }
-        : { day: t.day, twintipArmed: true, windArmed: true };
+        : { day: t.day, twintipArmed: true, twintipYesArmed: true, windArmed: true };
 
     const fire: AlertKind[] = [];
 
-    for (const kind of ["twintip", "wind"] as const) {
+    for (const kind of ["twintip", "twintipYes", "wind"] as const) {
       const active = conditions[kind];
       if (active === undefined) continue; // source not polled this tick
 
-      const armedKey = kind === "twintip" ? "twintipArmed" : "windArmed";
+      const armedKey = ARMED_KEY[kind];
 
       if (active) {
         if (state[armedKey]) {

@@ -75,6 +75,7 @@ export async function tick(now: Date): Promise<Record<string, unknown>> {
       });
 
       conditions.twintip = isKiteable(z.twintip);
+      conditions.twintipYes = z.twintip === "Yes"; // the definite "SI!" go
       twintipLabel = label(z.twintip);
       result.twintip = z;
     } catch (err) {
@@ -95,12 +96,28 @@ export async function tick(now: Date): Promise<Record<string, unknown>> {
     | { average: number; gust: number; direction: string }
     | undefined;
 
+  const windLine = wind
+    ? `${wind.average} kn avg, ${wind.gust} kn gusts (${wind.direction})`
+    : "";
+
   for (const kind of fire) {
-    if (kind === "twintip") {
+    // A jump straight from No to SI! trips both twintip conditions at once;
+    // the SI! push is the stronger message, so skip the generic one then.
+    if (kind === "twintip" && fire.includes("twintipYes")) continue;
+
+    if (kind === "twintipYes") {
+      await sendPush({
+        title: "🪁 Twintip: SI!",
+        body: windLine
+          ? `Zona kite Castelldefels is on · ${windLine}`
+          : "Zona kite Castelldefels — twintip is a go!",
+        tag: "twintip",
+      });
+    } else if (kind === "twintip") {
       await sendPush({
         title: `🪁 Twintip: ${twintipLabel}`,
-        body: wind
-          ? `Zona kite Castelldefels · ${wind.average} kn avg, ${wind.gust} kn gusts (${wind.direction})`
+        body: windLine
+          ? `Zona kite Castelldefels · ${windLine}`
           : "Zona kite Castelldefels — twintip status just improved.",
         tag: "twintip",
       });

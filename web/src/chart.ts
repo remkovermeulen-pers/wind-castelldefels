@@ -103,17 +103,6 @@ export function renderChart(canvas: HTMLCanvasElement, readings: Reading[]): voi
       tension: 0.3,
     },
     {
-      label: "Actual",
-      data: obs.map((r) => at(r, r.actual)),
-      borderColor: css("--actual"),
-      borderWidth: 1.5,
-      borderDash: [2, 3],
-      pointRadius,
-      pointHoverRadius: 5,
-      pointBackgroundColor: css("--actual"),
-      tension: 0.3,
-    },
-    {
       // Threshold drawn as a two-point line so it always spans the axis.
       label: `${WIND_ALERT_KNOTS} kn`,
       data: [
