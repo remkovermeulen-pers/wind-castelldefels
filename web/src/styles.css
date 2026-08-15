@@ -456,6 +456,20 @@ main {
   color: var(--no);
 }
 
+/* Announcement from the mojokite page (holiday closures etc.). */
+.zone-notice {
+  margin: 10px 0 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--no) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--no) 35%, transparent);
+  color: var(--no);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+}
+
 /* --- Chart ------------------------------------------------------------ */
 
 .chart-head {

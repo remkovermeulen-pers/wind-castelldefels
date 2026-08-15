@@ -244,6 +244,17 @@ function renderZone(zone: ZoneSnapshot | null): void {
 
   $("zone-stamp").innerHTML = `Zone ${zone.status} · ${when}` + zoneBadge(zone.status);
   $("zone-head-icon").innerHTML = zoneBadge(zone.status);
+
+  // Announcement under the mojokite title (e.g. a holiday closure), shown just
+  // below the update line. Absent most days.
+  const notice = $("zone-notice");
+  if (zone.notice) {
+    notice.textContent = zone.notice;
+    notice.hidden = false;
+  } else {
+    notice.textContent = "";
+    notice.hidden = true;
+  }
 }
 
 // --- Notifications ------------------------------------------------------

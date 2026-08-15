@@ -5,9 +5,13 @@
  * The page renders client-side from /zonakite/get_values.php, which returns
  * clean JSON — no scraping needed. Board values are the English strings
  * "Yes" | "No" | "Maybe"; the page labels them SI! / No / Quizás.
+ *
+ * The occasional announcement under the title (e.g. a local holiday closure) is
+ * static HTML on the page, not in the JSON, so it is scraped separately.
  */
 
 const ENDPOINT = "https://www.mojokite.com/zonakite/get_values.php";
+const PAGE_URL = "https://www.mojokite.com/zonakite/castelldefels.php";
 
 export type BoardValue = "Yes" | "No" | "Maybe";
 
@@ -62,4 +66,42 @@ export async function fetchZoneStatus(): Promise<ZoneStatus> {
     twintip: asBoardValue(data.twintip),
     lastUpdate: typeof data.last_update === "string" ? data.last_update : null,
   };
+}
+
+/**
+ * Scrapes the announcement shown under the page title — a `<p>` inside the
+ * `card-title` heading, used for one-off notices like a holiday closure. Absent
+ * most days, so this returns null when there is nothing to show and never
+ * throws: a missing notice must not fail the zone poll.
+ */
+export async function fetchZoneNotice(): Promise<string | null> {
+  try {
+    const res = await fetch(PAGE_URL, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; wind-castelldefels/1.0)",
+        "Accept": "text/html",
+        "Referer": "https://www.mojokite.com/",
+      },
+    });
+    if (!res.ok) return null;
+
+    const html = await res.text();
+    const heading = html.match(
+      /class=["']card-title[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i
+    );
+    if (!heading) return null;
+
+    const para = heading[1].match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+    if (!para) return null;
+
+    const text = para[1]
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return text || null;
+  } catch {
+    return null;
+  }
 }

@@ -2,7 +2,7 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { logger } from "./log";
 
 import { fetchWind } from "./sources/nudos";
-import { fetchZoneStatus, isKiteable, label } from "./sources/mojokite";
+import { fetchZoneStatus, fetchZoneNotice, isKiteable, label } from "./sources/mojokite";
 import { gateAlerts, sendPush, WIND_ALERT_KNOTS, type AlertKind } from "./alerts";
 import {
   LAST_ACTIVE_HOUR,
@@ -62,7 +62,7 @@ export async function tick(now: Date): Promise<Record<string, unknown>> {
   let twintipLabel = "—";
   if (shouldPollTwintip(t)) {
     try {
-      const z = await fetchZoneStatus();
+      const [z, notice] = await Promise.all([fetchZoneStatus(), fetchZoneNotice()]);
       await db.collection("twintip").doc(now.toISOString()).set({
         ts: Timestamp.fromDate(now),
         status: z.status,
@@ -71,6 +71,7 @@ export async function tick(now: Date): Promise<Record<string, unknown>> {
         surf: z.surf,
         twintip: z.twintip,
         siteLastUpdate: z.lastUpdate,
+        notice: notice ?? null,
         source: "get_values",
       });
 

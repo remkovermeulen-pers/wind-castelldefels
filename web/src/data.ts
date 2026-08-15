@@ -35,6 +35,8 @@ export interface ZoneSnapshot {
   surf: BoardValue | null;
   foil: BoardValue | null;
   siteLastUpdate: string | null;
+  /** One-off announcement scraped from under the page title, if any. */
+  notice: string | null;
 }
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
@@ -122,6 +124,7 @@ export function subscribeZone(cb: (row: ZoneSnapshot | null) => void): () => voi
         surf: (v.surf as BoardValue) ?? null,
         foil: (v.foil as BoardValue) ?? null,
         siteLastUpdate: (v.siteLastUpdate as string) ?? null,
+        notice: (v.notice as string) ?? null,
       };
     },
     cb
