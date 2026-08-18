@@ -15,8 +15,12 @@
  */
 const IFRAME_URL = "https://www.windguru.cz/widget-fcst-iframe.php";
 
-/** The forecast table renders to about this tall for the parameters below. */
-const HEIGHT_PX = 270;
+/**
+ * The forecast table renders to about this tall for the parameters below —
+ * enough to show every row through the Windguru rating (stars) and the
+ * horizontal scrollbar for the wide hourly table.
+ */
+const HEIGHT_PX = 424;
 
 const PARAMS = new URLSearchParams({
   s: "644417", // spot
@@ -26,14 +30,14 @@ const PARAMS = new URLSearchParams({
   tj: "c", // temperature in °C
   waj: "m",
   tij: "cm",
-  odh: "0",
-  doh: "24",
+  odh: "9", // only show 09:00…
+  doh: "22", // …through 22:00 each day
   fhours: "168", // 7-day horizon
-  hrsm: "2",
+  hrsm: "1", // hourly columns
   vt: "forecasts",
   lng: "en",
   idbs: "1", // include the "WG" blend row
-  p: "WINDSPD,GUST,SMER,TMPE,CDC,APCP1s",
+  p: "WINDSPD,GUST,SMER,TMPE,CDC,APCP1s,RATING", // RATING = the Windguru stars row
 });
 
 /** Injects the forecast iframe once. Safe to call repeatedly. */
