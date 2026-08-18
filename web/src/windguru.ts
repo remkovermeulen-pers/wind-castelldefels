@@ -16,11 +16,11 @@
 const IFRAME_URL = "https://www.windguru.cz/widget-fcst-iframe.php";
 
 /**
- * The forecast table renders to about this tall for the parameters below —
- * enough to show every row through the Windguru rating (stars) and the
- * horizontal scrollbar for the wide hourly table.
+ * Height of the forecast table through the Windguru rating (stars) row and the
+ * horizontal scrollbar. Measured at phone width, where the table is ~294px; a
+ * little headroom avoids clipping the scrollbar without leaving a grey gap.
  */
-const HEIGHT_PX = 424;
+const HEIGHT_PX = 300;
 
 const PARAMS = new URLSearchParams({
   s: "644417", // spot
