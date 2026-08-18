@@ -91,7 +91,11 @@ export async function fetchZoneNotice(): Promise<string | null> {
     );
     if (!heading) return null;
 
-    const para = heading[1].match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+    // Strip HTML comments first: mojokite "removes" a notice by commenting the
+    // <p> out rather than deleting it, and the text must not leak back through.
+    const inner = heading[1].replace(/<!--[\s\S]*?-->/g, "");
+
+    const para = inner.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
     if (!para) return null;
 
     const text = para[1]
