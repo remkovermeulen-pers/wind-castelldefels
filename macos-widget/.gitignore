@@ -1,0 +1,6 @@
+# Xcode noise — the project itself (project.yml + .xcodeproj) is tracked.
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+.DS_Store

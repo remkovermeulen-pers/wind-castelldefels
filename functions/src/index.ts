@@ -67,6 +67,44 @@ export const live = onRequest(
 );
 
 /**
+ * Latest kite-zone status as clean JSON, for clients that cannot query
+ * Firestore directly (e.g. the macOS widget). Reads the newest stored zone
+ * reading rather than hitting mojokite, so it stays cheap and matches the app.
+ */
+export const zone = onRequest(
+  { region: REGION, timeoutSeconds: 20, cors: true },
+  async (_req, res) => {
+    try {
+      const snap = await getFirestore()
+        .collection("twintip")
+        .orderBy("ts", "desc")
+        .limit(1)
+        .get();
+
+      if (snap.empty) {
+        res.status(404).json({ error: "no zone data yet" });
+        return;
+      }
+
+      const v = snap.docs[0].data();
+      res.set("Cache-Control", "public, max-age=30");
+      res.json({
+        status: v.status ?? null,
+        twintip: v.twintip ?? null,
+        surf: v.surf ?? null,
+        foil: v.foil ?? null,
+        siteLastUpdate: v.siteLastUpdate ?? null,
+        notice: v.notice ?? null,
+        at: Date.now(),
+      });
+    } catch (err) {
+      logger.error("zone fetch failed", err);
+      res.status(502).json({ error: String(err) });
+    }
+  }
+);
+
+/**
  * Stores a web-push registration token. Called by the PWA after the user
  * grants notification permission. Keyed by token so re-registration is
  * idempotent and Firestore rules can stay read-only for clients.

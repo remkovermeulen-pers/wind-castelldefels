@@ -1,0 +1,443 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		20BE03D35BE5ED047BF7DA4A /* WindWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7913C76078528231CE03C8B9 /* WindWidgetBundle.swift */; };
+		62CF44A803729E34BE363217 /* WindProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB53FEEE10B67BF7C1B811E5 /* WindProvider.swift */; };
+		6C12E163FC3AFC23D805F5E6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F62EF5D47275352959BF6A35 /* ContentView.swift */; };
+		990198F99B761192258FE2AE /* WindModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001EB9C053FD5FBCD1267A20 /* WindModel.swift */; };
+		BB9292D9E490FDBADE030D55 /* CastelldefelsWindApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16DD1373E32552DA52557858 /* CastelldefelsWindApp.swift */; };
+		BF71EB747D7C6AFA4AFD04DA /* WindWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7584B9B6BF591F44DF86F21F /* WindWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EEE30B77A687AC2F50E52E17 /* WindWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFA4FC21C8FCF38EF37B9572 /* WindWidgetViews.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		89BD61E5BFCC3231F086C005 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4B8F9249D79CCE05F76BAEAC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4F8AC8455FD98CA77B7F6B11;
+			remoteInfo = WindWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		503919C1B8C94A8D9357F1ED /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BF71EB747D7C6AFA4AFD04DA /* WindWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		001EB9C053FD5FBCD1267A20 /* WindModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindModel.swift; sourceTree = "<group>"; };
+		16DD1373E32552DA52557858 /* CastelldefelsWindApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CastelldefelsWindApp.swift; sourceTree = "<group>"; };
+		19E63AB6EF9D44D7760735C0 /* CastelldefelsWind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CastelldefelsWind.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		282DFE8018909E196A3CD6F1 /* Widget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Widget.entitlements; sourceTree = "<group>"; };
+		7584B9B6BF591F44DF86F21F /* WindWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WindWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7913C76078528231CE03C8B9 /* WindWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindWidgetBundle.swift; sourceTree = "<group>"; };
+		AB53FEEE10B67BF7C1B811E5 /* WindProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindProvider.swift; sourceTree = "<group>"; };
+		BF2E4C1784A791DCF70AC349 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D88A39D133DAB51D40492E75 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		DFA4FC21C8FCF38EF37B9572 /* WindWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindWidgetViews.swift; sourceTree = "<group>"; };
+		F62EF5D47275352959BF6A35 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0D8EA0D30340917BED88D6F2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				19E63AB6EF9D44D7760735C0 /* CastelldefelsWind.app */,
+				7584B9B6BF591F44DF86F21F /* WindWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		20EA8953DE927818AA53E7BA = {
+			isa = PBXGroup;
+			children = (
+				F090F92061C2C806856031C6 /* App */,
+				AC80B3B27C809792801130FD /* Widget */,
+				0D8EA0D30340917BED88D6F2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AC80B3B27C809792801130FD /* Widget */ = {
+			isa = PBXGroup;
+			children = (
+				BF2E4C1784A791DCF70AC349 /* Info.plist */,
+				282DFE8018909E196A3CD6F1 /* Widget.entitlements */,
+				001EB9C053FD5FBCD1267A20 /* WindModel.swift */,
+				AB53FEEE10B67BF7C1B811E5 /* WindProvider.swift */,
+				7913C76078528231CE03C8B9 /* WindWidgetBundle.swift */,
+				DFA4FC21C8FCF38EF37B9572 /* WindWidgetViews.swift */,
+			);
+			path = Widget;
+			sourceTree = "<group>";
+		};
+		F090F92061C2C806856031C6 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				D88A39D133DAB51D40492E75 /* App.entitlements */,
+				16DD1373E32552DA52557858 /* CastelldefelsWindApp.swift */,
+				F62EF5D47275352959BF6A35 /* ContentView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3B881189B43AC1DD8CC4E0C4 /* CastelldefelsWind */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D70F8BD878D1F5ADB438F7E9 /* Build configuration list for PBXNativeTarget "CastelldefelsWind" */;
+			buildPhases = (
+				8499CB745D33569421AB9D52 /* Sources */,
+				503919C1B8C94A8D9357F1ED /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				15FCB9949FC4BB21EE9BDD7F /* PBXTargetDependency */,
+			);
+			name = CastelldefelsWind;
+			packageProductDependencies = (
+			);
+			productName = CastelldefelsWind;
+			productReference = 19E63AB6EF9D44D7760735C0 /* CastelldefelsWind.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4F8AC8455FD98CA77B7F6B11 /* WindWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2AC26D425CC911D789933E08 /* Build configuration list for PBXNativeTarget "WindWidgetExtension" */;
+			buildPhases = (
+				4E81316DA0F4892A0C24930E /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WindWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = WindWidgetExtension;
+			productReference = 7584B9B6BF591F44DF86F21F /* WindWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4B8F9249D79CCE05F76BAEAC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					3B881189B43AC1DD8CC4E0C4 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					4F8AC8455FD98CA77B7F6B11 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 78F1B8F58C6B36393340B0EF /* Build configuration list for PBXProject "CastelldefelsWind" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 20EA8953DE927818AA53E7BA;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 0D8EA0D30340917BED88D6F2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3B881189B43AC1DD8CC4E0C4 /* CastelldefelsWind */,
+				4F8AC8455FD98CA77B7F6B11 /* WindWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4E81316DA0F4892A0C24930E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				990198F99B761192258FE2AE /* WindModel.swift in Sources */,
+				62CF44A803729E34BE363217 /* WindProvider.swift in Sources */,
+				20BE03D35BE5ED047BF7DA4A /* WindWidgetBundle.swift in Sources */,
+				EEE30B77A687AC2F50E52E17 /* WindWidgetViews.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8499CB745D33569421AB9D52 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB9292D9E490FDBADE030D55 /* CastelldefelsWindApp.swift in Sources */,
+				6C12E163FC3AFC23D805F5E6 /* ContentView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		15FCB9949FC4BB21EE9BDD7F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4F8AC8455FD98CA77B7F6B11 /* WindWidgetExtension */;
+			targetProxy = 89BD61E5BFCC3231F086C005 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1422B8BAFF415500F3AE8B39 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Castelldefels Wind";
+				INFOPLIST_KEY_LSUIElement = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.castelldefelswind.app;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		1C099DBD19F7348A2DFEB855 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Castelldefels Wind";
+				INFOPLIST_KEY_LSUIElement = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.castelldefelswind.app;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		62398C5288A2D5D65A0F5711 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Widget/Widget.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Widget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.castelldefelswind.app.WindWidget;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		977DD6DD4B4E570AE8BF430F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A2212A91FAE75A693FDC85FA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Widget/Widget.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Widget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.castelldefelswind.app.WindWidget;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		E7FB1901167059FD87A00BFD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2AC26D425CC911D789933E08 /* Build configuration list for PBXNativeTarget "WindWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A2212A91FAE75A693FDC85FA /* Debug */,
+				62398C5288A2D5D65A0F5711 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		78F1B8F58C6B36393340B0EF /* Build configuration list for PBXProject "CastelldefelsWind" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E7FB1901167059FD87A00BFD /* Debug */,
+				977DD6DD4B4E570AE8BF430F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D70F8BD878D1F5ADB438F7E9 /* Build configuration list for PBXNativeTarget "CastelldefelsWind" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1C099DBD19F7348A2DFEB855 /* Debug */,
+				1422B8BAFF415500F3AE8B39 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4B8F9249D79CCE05F76BAEAC /* Project object */;
+}
