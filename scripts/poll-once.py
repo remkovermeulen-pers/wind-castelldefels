@@ -28,16 +28,25 @@ from datetime import datetime, timezone
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import firestore  # noqa: E402
 
+WIND_WRAPPER = "https://www.17nudos.com/update_mdx.php"
 WIND_URL = "https://www.17nudos.com/update_me_mdx.php"
 ZONE_URL = "https://www.mojokite.com/zonakite/get_values.php"
-UA = {"User-Agent": "Mozilla/5.0 (compatible; wind-castelldefels/1.0)"}
+UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36"}
 
 
-def get(url, post=False, referer=None):
+def get(url, post=False, referer=None, body=None):
     headers = dict(UA)
     if referer:
         headers["Referer"] = referer
-    req = urllib.request.Request(url, headers=headers, method="POST" if post else "GET")
+    data = None
+    if body is not None:
+        data = body.encode()
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+        headers["X-Requested-With"] = "XMLHttpRequest"
+    req = urllib.request.Request(
+        url, data=data, headers=headers, method="POST" if (post or data) else "GET"
+    )
     with urllib.request.urlopen(req, timeout=30) as res:
         return res.read().decode("utf-8", "replace")
 
@@ -54,8 +63,18 @@ def num(s):
     return float(m.group()) if m else None
 
 
+def wind_token():
+    # update_me_mdx.php is token-gated; the token is minted in the wrapper's JS.
+    html = get(WIND_WRAPPER, referer="https://www.17nudos.com/")
+    m = re.search(r"var\s+miToken\s*=\s*'([a-f0-9]+)'", html, re.I)
+    if not m:
+        raise SystemExit("17nudos: could not find access token")
+    return m.group(1)
+
+
 def poll_wind(iso):
-    html = get(WIND_URL, post=True, referer="https://www.17nudos.com/")
+    token = wind_token()
+    html = get(WIND_URL, post=True, referer=WIND_WRAPPER, body="token=" + token)
     speeds = cell(html, "windSpeed")
     gust = cell(html, "windGust")
     if len(speeds) < 2 or not gust:

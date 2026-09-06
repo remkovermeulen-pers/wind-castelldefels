@@ -6,10 +6,18 @@
  * every 5 seconds. That inner endpoint returns a small HTML table holding the
  * same numbers that drive the graph, so we read it directly.
  *
+ * As of ~2026-08 the inner endpoint is token-gated: update_mdx.php mints a
+ * per-load `miToken`, and update_me_mdx.php returns 403 "Acceso denegado"
+ * unless that token is POSTed back. So we fetch the wrapper first, extract the
+ * token, then post it — mirroring the site's own AJAX call.
+ *
  * Wind speeds are in knots ("17 nudos" = 17 knots).
  */
 
+const WRAPPER = "https://www.17nudos.com/update_mdx.php";
 const ENDPOINT = "https://www.17nudos.com/update_me_mdx.php";
+const UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
 
 export interface WindReading {
   /** Instantaneous wind speed, knots ("ACTUAL") */
@@ -80,15 +88,38 @@ export function parseNudos(html: string): WindReading {
   };
 }
 
-export async function fetchWind(): Promise<WindReading> {
-  // The site's own client uses POST; the endpoint ignores the body.
-  const res = await fetch(ENDPOINT, {
-    method: "POST",
+/** Fetch the wrapper page and pull the per-load access token out of its JS. */
+async function fetchToken(): Promise<string> {
+  const res = await fetch(WRAPPER, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; wind-castelldefels/1.0)",
+      "User-Agent": UA,
       "Accept": "text/html",
       "Referer": "https://www.17nudos.com/",
     },
+  });
+  if (!res.ok) throw new Error(`17nudos: wrapper HTTP ${res.status}`);
+
+  const html = await res.text();
+  const m = html.match(/var\s+miToken\s*=\s*'([a-f0-9]+)'/i);
+  if (!m) throw new Error("17nudos: could not find access token");
+  return m[1];
+}
+
+export async function fetchWind(): Promise<WindReading> {
+  // update_me_mdx.php is token-gated: get a fresh token from the wrapper, then
+  // POST it back the way the site's own AJAX does.
+  const token = await fetchToken();
+
+  const res = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: {
+      "User-Agent": UA,
+      "Accept": "text/html",
+      "Referer": WRAPPER,
+      "X-Requested-With": "XMLHttpRequest",
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: `token=${encodeURIComponent(token)}`,
   });
 
   if (!res.ok) throw new Error(`17nudos: HTTP ${res.status}`);
