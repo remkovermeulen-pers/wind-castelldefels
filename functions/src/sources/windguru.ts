@@ -7,10 +7,10 @@
  * parameters (they rotate every few hours, so never hard-code them) and
  * q=forecast returns the hourly series.
  *
- * A "star" is defined as forecast average wind >= STAR_KNOTS. The "WG" blend
- * (id_model 100) the site shows by default cannot be fetched server-side (it
- * answers "Data not available (wgmix)"), so this uses GFS (id_model 3), its
- * primary underlying model. Wind is in knots.
+ * A slot is "starred" when forecast average wind >= WIND_MIN_KNOTS AND gusts >
+ * GUST_MIN_KNOTS. The "WG" blend (id_model 100) the site shows by default cannot
+ * be fetched server-side (it answers "Data not available (wgmix)"), so this uses
+ * GFS (id_model 3), its primary underlying model. Wind is in knots.
  */
 const IAPI = "https://www.windguru.cz/int/iapi.php";
 const SPOT = 644417;
@@ -18,8 +18,20 @@ const MODEL = 3;
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
 
-/** A slot is "starred" when forecast average wind is this many knots or more. */
-export const STAR_KNOTS = 12;
+/** Star when average wind is at least this many knots… */
+export const WIND_MIN_KNOTS = 11;
+/** …and gusts are strictly more than this many knots. */
+export const GUST_MIN_KNOTS = 12;
+
+/** True when a slot's forecast qualifies as a star. */
+export function isStarred(wind: number | null, gust: number | null): boolean {
+  return (
+    wind != null &&
+    gust != null &&
+    wind >= WIND_MIN_KNOTS &&
+    gust > GUST_MIN_KNOTS
+  );
+}
 
 export interface ForecastPoint {
   /** Slot start, epoch ms (UTC). */
@@ -28,6 +40,8 @@ export interface ForecastPoint {
   stepH: number;
   /** Mean wind, knots. */
   wind: number | null;
+  /** Gust, knots. */
+  gust: number | null;
 }
 
 export interface Forecast {
@@ -76,6 +90,7 @@ export async function fetchForecast(): Promise<Forecast> {
   const f = data.fcst as Record<string, unknown> | undefined;
   const hours = f?.hours as number[] | undefined;
   const wind = f?.WINDSPD as (number | null)[] | undefined;
+  const gust = (f?.GUST ?? []) as (number | null)[];
   const init = f?.initstamp as number | undefined;
   if (!hours?.length || !wind?.length || init == null) {
     throw new Error("windguru: forecast missing hours/WINDSPD/initstamp");
@@ -85,6 +100,7 @@ export async function fetchForecast(): Promise<Forecast> {
     tsMs: (init + h * 3600) * 1000,
     stepH: i + 1 < hours.length ? hours[i + 1] - hours[i] : 1,
     wind: typeof wind[i] === "number" ? wind[i] : null,
+    gust: typeof gust[i] === "number" ? gust[i] : null,
   }));
 
   return { initMs: init * 1000, model: String(data.model ?? `id_model ${MODEL}`), points };

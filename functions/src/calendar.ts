@@ -7,7 +7,13 @@
  * the daytime range the app's forecast shows. Times are emitted in UTC (…Z);
  * calendar apps convert to the viewer's zone.
  */
-import { fetchForecast, STAR_KNOTS, type Forecast } from "./sources/windguru";
+import {
+  fetchForecast,
+  isStarred,
+  WIND_MIN_KNOTS,
+  GUST_MIN_KNOTS,
+  type Forecast,
+} from "./sources/windguru";
 
 const ZONE = "Europe/Madrid";
 
@@ -59,11 +65,12 @@ interface Window {
   endMs: number;
   minWind: number;
   maxWind: number;
+  maxGust: number;
 }
 
 function windows(f: Forecast): Window[] {
   const starred = f.points.filter(
-    (p) => p.wind != null && p.wind >= STAR_KNOTS && madridHour(p.tsMs) >= 9 && madridHour(p.tsMs) <= 21
+    (p) => isStarred(p.wind, p.gust) && madridHour(p.tsMs) >= 9 && madridHour(p.tsMs) <= 21
   );
 
   const out: Window[] = [];
@@ -74,8 +81,9 @@ function windows(f: Forecast): Window[] {
       last.endMs = Math.max(last.endMs, endMs);
       last.minWind = Math.min(last.minWind, p.wind!);
       last.maxWind = Math.max(last.maxWind, p.wind!);
+      last.maxGust = Math.max(last.maxGust, p.gust!);
     } else {
-      out.push({ startMs: p.tsMs, endMs, minWind: p.wind!, maxWind: p.wind! });
+      out.push({ startMs: p.tsMs, endMs, minWind: p.wind!, maxWind: p.wind!, maxGust: p.gust! });
     }
   }
   return out;
@@ -93,7 +101,7 @@ export async function buildCalendar(): Promise<string> {
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "X-WR-CALNAME:Castelldefels kite windows",
-    `X-WR-CALDESC:Forecast hours with average wind >= ${STAR_KNOTS} kn (Windguru ${f.model}).`,
+    `X-WR-CALDESC:Forecast hours with average wind >= ${WIND_MIN_KNOTS} kn and gusts > ${GUST_MIN_KNOTS} kn (Windguru ${f.model}).`,
     "X-WR-TIMEZONE:" + ZONE,
     "REFRESH-INTERVAL;VALUE=DURATION:PT2H",
     "X-PUBLISHED-TTL:PT2H",
@@ -102,9 +110,10 @@ export async function buildCalendar(): Promise<string> {
   for (const w of wins) {
     const range =
       w.minWind === w.maxWind ? `${w.minWind} kn` : `${w.minWind}–${w.maxWind} kn`;
-    const summary = `🪁 Castelldefels ${range}`;
+    const summary = `🪁 Castelldefels ${range}, gusts ${w.maxGust} kn`;
     const desc =
-      `Windguru forecast: average wind ${range} (star ≥ ${STAR_KNOTS} kn).\n` +
+      `Windguru forecast: average wind ${range}, gusts up to ${w.maxGust} kn.\n` +
+      `Star = avg ≥ ${WIND_MIN_KNOTS} kn and gusts > ${GUST_MIN_KNOTS} kn.\n` +
       `Model ${f.model}. Forecast run ${localStamp(f.initMs)} CET/CEST.`;
 
     lines.push(
