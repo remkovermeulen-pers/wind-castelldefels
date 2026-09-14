@@ -26,16 +26,6 @@ const madridHour = (ms: number): number =>
     }).format(new Date(ms))
   );
 
-const localStamp = (ms: number): string =>
-  new Intl.DateTimeFormat("en-GB", {
-    timeZone: ZONE,
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(new Date(ms));
-
 /** UTC basic format, e.g. 20260914T130000Z. */
 function icsUtc(ms: number): string {
   return new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -112,9 +102,8 @@ export async function buildCalendar(): Promise<string> {
       w.minWind === w.maxWind ? `${w.minWind} kn` : `${w.minWind}–${w.maxWind} kn`;
     const summary = `🪁 Castelldefels ${range}, gusts ${w.maxGust} kn`;
     const desc =
-      `Windguru forecast: average wind ${range}, gusts up to ${w.maxGust} kn.\n` +
-      `Star = avg ≥ ${WIND_MIN_KNOTS} kn and gusts > ${GUST_MIN_KNOTS} kn.\n` +
-      `Model ${f.model}. Forecast run ${localStamp(f.initMs)} CET/CEST.`;
+      `Windguru ${f.model} forecast: average wind ${range}, gusts up to ${w.maxGust} kn.\n` +
+      `Star = avg ≥ ${WIND_MIN_KNOTS} kn and gusts > ${GUST_MIN_KNOTS} kn.`;
 
     lines.push(
       "BEGIN:VEVENT",
