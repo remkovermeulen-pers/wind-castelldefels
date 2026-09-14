@@ -26,6 +26,22 @@ const madridHour = (ms: number): number =>
     }).format(new Date(ms))
   );
 
+const isWeekend = (ms: number): boolean => {
+  const day = new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short" }).format(
+    new Date(ms)
+  );
+  return day === "Sat" || day === "Sun";
+};
+
+/**
+ * Slot start hours to include: weekends 09:00–22:00, weekdays 17:00–22:00.
+ * The upper bound is 21 because a slot starting at 21:00 already covers 22:00.
+ */
+function inWindow(ms: number): boolean {
+  const h = madridHour(ms);
+  return isWeekend(ms) ? h >= 9 && h <= 21 : h >= 17 && h <= 21;
+}
+
 /** UTC basic format, e.g. 20260914T130000Z. */
 function icsUtc(ms: number): string {
   return new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -59,9 +75,7 @@ interface Window {
 }
 
 function windows(f: Forecast): Window[] {
-  const starred = f.points.filter(
-    (p) => isStarred(p.wind, p.gust) && madridHour(p.tsMs) >= 9 && madridHour(p.tsMs) <= 21
-  );
+  const starred = f.points.filter((p) => isStarred(p.wind, p.gust) && inWindow(p.tsMs));
 
   const out: Window[] = [];
   for (const p of starred) {
