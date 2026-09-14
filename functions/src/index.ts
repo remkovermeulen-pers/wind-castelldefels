@@ -6,6 +6,7 @@ import * as logger from "firebase-functions/logger";
 
 import { tick } from "./poller";
 import { fetchWind } from "./sources/nudos";
+import { buildCalendar } from "./calendar";
 import { ZONE } from "./time";
 
 initializeApp();
@@ -62,6 +63,27 @@ export const live = onRequest(
     } catch (err) {
       logger.error("live fetch failed", err);
       res.status(502).json({ error: String(err) });
+    }
+  }
+);
+
+/**
+ * Subscribable calendar (.ics) of forecast "star" windows — hours the Windguru
+ * forecast shows average wind >= 12 kn at Castelldefels. Subscribe once
+ * (webcal://…/calendar); calendar apps re-fetch on their own schedule.
+ */
+export const calendar = onRequest(
+  { region: REGION, timeoutSeconds: 30, cors: true },
+  async (_req, res) => {
+    try {
+      const ics = await buildCalendar();
+      res.set("Content-Type", "text/calendar; charset=utf-8");
+      res.set("Content-Disposition", 'inline; filename="castelldefels-kite.ics"');
+      res.set("Cache-Control", "public, max-age=1800");
+      res.send(ics);
+    } catch (err) {
+      logger.error("calendar build failed", err);
+      res.status(502).send(`calendar error: ${String(err)}`);
     }
   }
 );
