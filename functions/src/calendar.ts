@@ -97,6 +97,10 @@ export async function buildCalendar(): Promise<string> {
   const f = await fetchForecast();
   const wins = windows(f);
   const now = icsUtc(Date.now());
+  // Monotonic sequence (hours since epoch): a stable UID keeps events matched
+  // across refreshes, and a rising SEQUENCE plus LAST-MODIFIED tells calendar
+  // apps the content changed, so updated wind values actually apply.
+  const seq = Math.floor(Date.now() / 3600_000);
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",
@@ -123,6 +127,8 @@ export async function buildCalendar(): Promise<string> {
       "BEGIN:VEVENT",
       fold(`UID:kite-${icsUtc(w.startMs)}@wind-castelldefels.web.app`),
       `DTSTAMP:${now}`,
+      `LAST-MODIFIED:${now}`,
+      `SEQUENCE:${seq}`,
       `DTSTART:${icsUtc(w.startMs)}`,
       `DTEND:${icsUtc(w.endMs)}`,
       fold(`SUMMARY:${esc(summary)}`),
