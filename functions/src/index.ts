@@ -67,22 +67,58 @@ export const live = onRequest(
   }
 );
 
+const CALENDAR_DOC = "state/calendar";
+
 /**
- * Subscribable calendar (.ics) of forecast "star" windows — hours the Windguru
- * forecast shows average wind >= 12 kn at Castelldefels. Subscribe once
- * (webcal://…/calendar); calendar apps re-fetch on their own schedule.
+ * Rebuilds the calendar and stores the .ics snapshot in Firestore. Every device
+ * then gets byte-identical content between rebuilds, instead of each fetching a
+ * different live snapshot (and risking a different member-model subset).
+ */
+async function refreshStoredCalendar(): Promise<string> {
+  const ics = await buildCalendar();
+  await getFirestore().doc(CALENDAR_DOC).set({
+    ics,
+    generatedAt: FieldValue.serverTimestamp(),
+  });
+  return ics;
+}
+
+/**
+ * Rebuild the stored calendar every 3 hours (Windguru's models run ~every 6h),
+ * so all subscribers converge on the same snapshot.
+ */
+export const refreshCalendar = onSchedule(
+  {
+    schedule: "0 */3 * * *",
+    timeZone: ZONE,
+    region: REGION,
+    timeoutSeconds: 120,
+    memory: "256MiB",
+    retryCount: 1,
+  },
+  async () => {
+    await refreshStoredCalendar();
+    logger.info("calendar refreshed");
+  }
+);
+
+/**
+ * Subscribable calendar (.ics) of forecast "star" windows for Castelldefels.
+ * Serves the stored snapshot so every device sees identical content; builds once
+ * on demand if the snapshot does not exist yet. Subscribe once (webcal://…).
  */
 export const calendar = onRequest(
-  { region: REGION, timeoutSeconds: 30, cors: true },
+  { region: REGION, timeoutSeconds: 120, cors: true },
   async (_req, res) => {
     try {
-      const ics = await buildCalendar();
+      const snap = await getFirestore().doc(CALENDAR_DOC).get();
+      const ics = (snap.data()?.ics as string) || (await refreshStoredCalendar());
       res.set("Content-Type", "text/calendar; charset=utf-8");
       res.set("Content-Disposition", 'inline; filename="castelldefels-kite.ics"');
-      res.set("Cache-Control", "public, max-age=1800");
+      res.set("Cache-Control", "public, max-age=3600");
       res.send(ics);
     } catch (err) {
-      logger.error("calendar build failed", err);
+      logger.error("calendar serve failed", err);
       res.status(502).send(`calendar error: ${String(err)}`);
     }
   }
