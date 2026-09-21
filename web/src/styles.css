@@ -470,6 +470,42 @@ main {
   text-align: center;
 }
 
+/* Collapsed zone panel: off-season / closed for days. Hide the board and any
+   notice, leaving a compact heading + status line; tap the heading to expand. */
+.statuses.collapsed .board,
+.statuses.collapsed .zone-notice {
+  display: none;
+}
+
+.statuses.collapsed .zone-stamp,
+.statuses.collapsed #zone-stamp {
+  margin-top: 0;
+}
+
+.statuses.collapsed .zone-head {
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.statuses.collapsed .zone-head::after {
+  content: "▸";
+  margin-left: auto;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.statuses.collapsed.expanded .zone-head::after {
+  transform: rotate(90deg);
+}
+
+.statuses.collapsed.expanded .board {
+  display: flex;
+}
+
+.statuses.collapsed.expanded .zone-notice:not([hidden]) {
+  display: block;
+}
+
 /* --- Chart ------------------------------------------------------------ */
 
 .chart-head {

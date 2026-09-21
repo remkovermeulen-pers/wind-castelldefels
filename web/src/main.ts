@@ -221,6 +221,32 @@ function siteStamp(raw: string | null): string | null {
   return `${dayLabel.format(new Date(`${stampDay}T12:00:00Z`))} at ${time}`;
 }
 
+/**
+ * Hours since mojokite last updated its board. Off-season, on holidays and at
+ * weekends the site stops updating, so its `last_update` freezes — that
+ * staleness is the day-level "is the zone operating" signal. The kite season
+ * (Jun–Sep) is entirely CEST, so the timestamp is treated as UTC+2.
+ */
+function zoneStaleHours(siteLastUpdate: string | null): number | null {
+  if (!siteLastUpdate) return null;
+  const m = siteLastUpdate.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if (!m) return null;
+  const epoch = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) - 2 * 3600_000;
+  return (Date.now() - epoch) / 3600_000;
+}
+
+/** More than this long without a mojokite update ⇒ the zone isn't open today. */
+const ZONE_STALE_HOURS = 28;
+
+/** Today's date in Europe/Madrid as YYYY-MM-DD (lexicographically comparable). */
+const madridToday = (): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
 function renderZone(zone: ZoneSnapshot | null): void {
   if (!zone) {
     $("zone-stamp").textContent =
@@ -234,16 +260,43 @@ function renderZone(zone: ZoneSnapshot | null): void {
     el.className = pillClass(zone[key]);
   }
 
-  // Prefer mojokite's own update time over ours — the board often sits
-  // unchanged for a while after we poll it. Fall back to the poll time only
-  // if the site did not report one.
-  const site = siteStamp(zone.siteLastUpdate);
-  const when = site
-    ? `updated ${site}`
-    : `checked ${stampFmt.format(zone.ts)}`;
+  // Collapse the whole panel while the zone is closed for days, keeping only a
+  // compact "closed" line (tap to expand). Prefer the season schedule scraped
+  // from the page; fall back to update staleness if it wasn't parsed.
+  const today = madridToday();
+  let collapsed = false;
+  let reason = "";
+  if (zone.season) {
+    if (today < zone.season.start || today > zone.season.end) {
+      collapsed = true;
+      reason = "for the season";
+    } else if (zone.season.closed.includes(today)) {
+      collapsed = true;
+      reason = "today (holiday)";
+    }
+  } else {
+    const stale = zoneStaleHours(zone.siteLastUpdate);
+    collapsed = stale != null && stale > ZONE_STALE_HOURS;
+  }
 
-  $("zone-stamp").innerHTML = `Zone ${zone.status} · ${when}` + zoneBadge(zone.status);
-  $("zone-head-icon").innerHTML = zoneBadge(zone.status);
+  const section = $("statuses");
+  section.classList.toggle("collapsed", collapsed);
+  if (!collapsed) section.classList.remove("expanded");
+
+  const site = siteStamp(zone.siteLastUpdate);
+
+  if (collapsed) {
+    $("zone-stamp").innerHTML =
+      `Kitezone closed${reason ? ` ${reason}` : ""}${site ? ` · last open ${site}` : ""}` +
+      zoneBadge("CLOSE");
+    $("zone-head-icon").innerHTML = zoneBadge("CLOSE");
+  } else {
+    // Prefer mojokite's own update time over ours — the board often sits
+    // unchanged for a while after we poll it.
+    const when = site ? `updated ${site}` : `checked ${stampFmt.format(zone.ts)}`;
+    $("zone-stamp").innerHTML = `Zone ${zone.status} · ${when}` + zoneBadge(zone.status);
+    $("zone-head-icon").innerHTML = zoneBadge(zone.status);
+  }
 
   // Announcement under the mojokite title (e.g. a holiday closure), shown just
   // below the update line. Absent most days.
@@ -302,6 +355,13 @@ async function initNotifications(): Promise<void> {
 }
 
 // --- Boot ---------------------------------------------------------------
+
+// Let the user expand the collapsed (off-season) zone panel to peek at the
+// last board; only meaningful while the panel is collapsed.
+$("statuses").querySelector(".zone-head")?.addEventListener("click", () => {
+  const s = $("statuses");
+  if (s.classList.contains("collapsed")) s.classList.toggle("expanded");
+});
 
 subscribeReadings(renderWind);
 subscribeZone(renderZone);

@@ -28,6 +28,14 @@ export interface Reading {
   stationTime: string | null;
 }
 
+export interface ZoneSchedule {
+  /** YYYY-MM-DD */
+  start: string;
+  end: string;
+  /** Holiday closure dates within the season, YYYY-MM-DD. */
+  closed: string[];
+}
+
 export interface ZoneSnapshot {
   ts: Date;
   status: string;
@@ -37,6 +45,8 @@ export interface ZoneSnapshot {
   siteLastUpdate: string | null;
   /** One-off announcement scraped from under the page title, if any. */
   notice: string | null;
+  /** Operating season parsed from the page, if found. */
+  season: ZoneSchedule | null;
 }
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
@@ -125,6 +135,7 @@ export function subscribeZone(cb: (row: ZoneSnapshot | null) => void): () => voi
         foil: (v.foil as BoardValue) ?? null,
         siteLastUpdate: (v.siteLastUpdate as string) ?? null,
         notice: (v.notice as string) ?? null,
+        season: (v.season as ZoneSchedule) ?? null,
       };
     },
     cb

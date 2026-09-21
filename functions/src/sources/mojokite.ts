@@ -68,13 +68,66 @@ export async function fetchZoneStatus(): Promise<ZoneStatus> {
   };
 }
 
+/** The season the zone operates, parsed from the page. Dates are YYYY-MM-DD. */
+export interface ZoneSchedule {
+  start: string;
+  end: string;
+  /** One-off closure dates (holidays) within the season. */
+  closed: string[];
+}
+
+export interface ZonePageInfo {
+  /** One-off announcement under the title, or null. */
+  notice: string | null;
+  /** Operating season and holiday closures, or null if not found. */
+  schedule: ZoneSchedule | null;
+}
+
+/** Announcement under the title — a `<p>` in the card-title heading. */
+function parseNotice(html: string): string | null {
+  const heading = html.match(/class=["']card-title[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i);
+  if (!heading) return null;
+  // Strip comments first: mojokite "removes" a notice by commenting the <p> out.
+  const para = heading[1].replace(/<!--[\s\S]*?-->/g, "").match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+  if (!para) return null;
+  const text = para[1]
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || null;
+}
+
 /**
- * Scrapes the announcement shown under the page title — a `<p>` inside the
- * `card-title` heading, used for one-off notices like a holiday closure. Absent
- * most days, so this returns null when there is nothing to show and never
- * throws: a missing notice must not fail the zone poll.
+ * Operating season from the rules text, e.g. "la zona estara abierta a partir
+ * del lunes 01/06 hasta 18/09 … En 2026 cierra en las fechas 24/6, 14/08,
+ * 11/09." Dates are DD/MM; the year comes from the same text.
  */
-export async function fetchZoneNotice(): Promise<string | null> {
+function parseSchedule(html: string): ZoneSchedule | null {
+  const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  const year = text.match(/a[nñ]o\s+(\d{4})/i);
+  const rng = text.match(
+    /a partir del[^0-9]*(\d{1,2})\/(\d{1,2})\s+hasta\s+(\d{1,2})\/(\d{1,2})/i
+  );
+  if (!year || !rng) return null;
+
+  const iso = (d: string, m: string) =>
+    `${year[1]}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+
+  const closed: string[] = [];
+  const fest = text.match(/cierra en las fechas([0-9/,\s]+)/i);
+  if (fest) {
+    for (const m of fest[1].matchAll(/(\d{1,2})\/(\d{1,2})/g)) closed.push(iso(m[1], m[2]));
+  }
+
+  return { start: iso(rng[1], rng[2]), end: iso(rng[3], rng[4]), closed };
+}
+
+/**
+ * Fetches the page once and parses both the announcement and the operating
+ * season. Never throws — a scrape failure must not fail the zone poll.
+ */
+export async function fetchZonePage(): Promise<ZonePageInfo> {
   try {
     const res = await fetch(PAGE_URL, {
       headers: {
@@ -83,29 +136,10 @@ export async function fetchZoneNotice(): Promise<string | null> {
         "Referer": "https://www.mojokite.com/",
       },
     });
-    if (!res.ok) return null;
-
+    if (!res.ok) return { notice: null, schedule: null };
     const html = await res.text();
-    const heading = html.match(
-      /class=["']card-title[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i
-    );
-    if (!heading) return null;
-
-    // Strip HTML comments first: mojokite "removes" a notice by commenting the
-    // <p> out rather than deleting it, and the text must not leak back through.
-    const inner = heading[1].replace(/<!--[\s\S]*?-->/g, "");
-
-    const para = inner.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
-    if (!para) return null;
-
-    const text = para[1]
-      .replace(/<[^>]*>/g, "")
-      .replace(/&nbsp;/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    return text || null;
+    return { notice: parseNotice(html), schedule: parseSchedule(html) };
   } catch {
-    return null;
+    return { notice: null, schedule: null };
   }
 }
