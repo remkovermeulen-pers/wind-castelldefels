@@ -111,8 +111,8 @@ export async function buildCalendar(): Promise<string> {
     "X-WR-CALNAME:Castelldefels kite windows",
     `X-WR-CALDESC:Forecast hours with average wind >= ${WIND_MIN_KNOTS} kn and gusts > ${GUST_MIN_KNOTS} kn (Windguru ${f.model}).`,
     "X-WR-TIMEZONE:" + ZONE,
-    "REFRESH-INTERVAL;VALUE=DURATION:PT2H",
-    "X-PUBLISHED-TTL:PT2H",
+    "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+    "X-PUBLISHED-TTL:PT1H",
   ];
 
   for (const w of wins) {

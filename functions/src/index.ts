@@ -113,9 +113,15 @@ export const calendar = onRequest(
     try {
       const snap = await getFirestore().doc(CALENDAR_DOC).get();
       const ics = (snap.data()?.ics as string) || (await refreshStoredCalendar());
+      const generatedAt = snap.data()?.generatedAt as
+        | { toDate(): Date }
+        | undefined;
       res.set("Content-Type", "text/calendar; charset=utf-8");
       res.set("Content-Disposition", 'inline; filename="castelldefels-kite.ics"');
-      res.set("Cache-Control", "public, max-age=3600");
+      // Short cache + Last-Modified so clients revalidate quickly instead of
+      // sitting on a stale copy; the snapshot itself only changes every 3h.
+      res.set("Cache-Control", "public, max-age=900");
+      if (generatedAt) res.set("Last-Modified", generatedAt.toDate().toUTCString());
       res.send(ics);
     } catch (err) {
       logger.error("calendar serve failed", err);
