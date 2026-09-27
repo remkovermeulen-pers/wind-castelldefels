@@ -66,7 +66,7 @@ function fold(line: string): string {
   return parts.join("\r\n");
 }
 
-interface Window {
+export interface Window {
   startMs: number;
   endMs: number;
   minWind: number;
@@ -93,14 +93,30 @@ function windows(f: Forecast): Window[] {
   return out;
 }
 
-export async function buildCalendar(): Promise<string> {
-  const f = await fetchForecast();
+export interface CalendarData {
+  ics: string;
+  windows: Window[];
+}
+
+/**
+ * Builds the .ics feed and the structured star windows for a spot. The windows
+ * are reused by the poller for the location's rising-edge wind alerts, so the
+ * calendar and the alerts always agree.
+ */
+export async function buildCalendarData(spot: number, name: string): Promise<CalendarData> {
+  const f = await fetchForecast(spot);
   const wins = windows(f);
   const now = icsUtc(Date.now());
   // Monotonic sequence (hours since epoch): a stable UID keeps events matched
   // across refreshes, and a rising SEQUENCE plus LAST-MODIFIED tells calendar
   // apps the content changed, so updated wind values actually apply.
   const seq = Math.floor(Date.now() / 3600_000);
+  // Keep the original Castelldefels UIDs; namespace other spots so a user
+  // subscribed to both feeds never gets a UID collision.
+  const uid = (startMs: number) =>
+    spot === 644417
+      ? `kite-${icsUtc(startMs)}@wind-castelldefels.web.app`
+      : `kite-${spot}-${icsUtc(startMs)}@wind-castelldefels.web.app`;
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",
@@ -108,7 +124,7 @@ export async function buildCalendar(): Promise<string> {
     "PRODID:-//wind-castelldefels//kite-stars//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:Castelldefels kite windows",
+    `X-WR-CALNAME:${name} kite windows`,
     `X-WR-CALDESC:Forecast hours with average wind >= ${WIND_MIN_KNOTS} kn and gusts > ${GUST_MIN_KNOTS} kn (Windguru ${f.model}).`,
     "X-WR-TIMEZONE:" + ZONE,
     "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
@@ -118,14 +134,14 @@ export async function buildCalendar(): Promise<string> {
   for (const w of wins) {
     const range =
       w.minWind === w.maxWind ? `${w.minWind} kn` : `${w.minWind}–${w.maxWind} kn`;
-    const summary = `🪁 Castelldefels ${range}, gusts ${w.maxGust} kn`;
+    const summary = `🪁 ${name} ${range}, gusts ${w.maxGust} kn`;
     const desc =
       `Windguru ${f.model} forecast: average wind ${range}, gusts up to ${w.maxGust} kn.\n` +
       `Star = avg ≥ ${WIND_MIN_KNOTS} kn and gusts > ${GUST_MIN_KNOTS} kn.`;
 
     lines.push(
       "BEGIN:VEVENT",
-      fold(`UID:kite-${icsUtc(w.startMs)}@wind-castelldefels.web.app`),
+      fold(`UID:${uid(w.startMs)}`),
       `DTSTAMP:${now}`,
       `LAST-MODIFIED:${now}`,
       `SEQUENCE:${seq}`,
@@ -139,5 +155,5 @@ export async function buildCalendar(): Promise<string> {
   }
 
   lines.push("END:VCALENDAR");
-  return lines.join("\r\n") + "\r\n";
+  return { ics: lines.join("\r\n") + "\r\n", windows: wins };
 }

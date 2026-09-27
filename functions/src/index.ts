@@ -6,7 +6,7 @@ import * as logger from "firebase-functions/logger";
 
 import { tick } from "./poller";
 import { fetchWind } from "./sources/nudos";
-import { buildCalendar } from "./calendar";
+import { buildCalendarData } from "./calendar";
 import { fetchForecast } from "./sources/windguru";
 import { ZONE } from "./time";
 
@@ -126,24 +126,31 @@ export const live = onRequest(
   }
 );
 
-const CALENDAR_DOC = "state/calendar";
+/** Star calendars: one stored snapshot per spot. */
+const CALENDARS = [
+  { spot: 644417, name: "Castelldefels", doc: "state/calendar", file: "castelldefels-kite.ics" },
+  { spot: 1004, name: "Bogatell", doc: "state/calendar_1004", file: "bogatell-kite.ics" },
+] as const;
+
+type CalendarCfg = (typeof CALENDARS)[number];
 
 /**
- * Rebuilds the calendar and stores the .ics snapshot in Firestore. Every device
- * then gets byte-identical content between rebuilds, instead of each fetching a
- * different live snapshot (and risking a different member-model subset).
+ * Rebuilds a spot's calendar and stores the .ics snapshot plus its structured
+ * star windows in Firestore. Every device gets byte-identical content between
+ * rebuilds, and the poller reuses the windows for that spot's wind alerts.
  */
-async function refreshStoredCalendar(): Promise<string> {
-  const ics = await buildCalendar();
-  await getFirestore().doc(CALENDAR_DOC).set({
-    ics,
+async function refreshStoredCalendar(cal: CalendarCfg): Promise<string> {
+  const data = await buildCalendarData(cal.spot, cal.name);
+  await getFirestore().doc(cal.doc).set({
+    ics: data.ics,
+    windows: data.windows,
     generatedAt: FieldValue.serverTimestamp(),
   });
-  return ics;
+  return data.ics;
 }
 
 /**
- * Rebuild the stored calendar every 3 hours (Windguru's models run ~every 6h),
+ * Rebuild every stored calendar every 3 hours (Windguru's models run ~every 6h),
  * so all subscribers converge on the same snapshot.
  */
 export const refreshCalendar = onSchedule(
@@ -151,34 +158,36 @@ export const refreshCalendar = onSchedule(
     schedule: "0 */3 * * *",
     timeZone: ZONE,
     region: REGION,
-    timeoutSeconds: 120,
+    timeoutSeconds: 180,
     memory: "256MiB",
     retryCount: 1,
   },
   async () => {
-    await refreshStoredCalendar();
-    logger.info("calendar refreshed");
+    for (const cal of CALENDARS) await refreshStoredCalendar(cal);
+    logger.info("calendars refreshed");
   }
 );
 
 /**
- * Subscribable calendar (.ics) of forecast "star" windows for Castelldefels.
- * Serves the stored snapshot so every device sees identical content; builds once
- * on demand if the snapshot does not exist yet. Subscribe once (webcal://…).
+ * Subscribable calendar (.ics) of forecast "star" windows. Default spot is
+ * Castelldefels; `?spot=1004` serves Bogatell. Serves the stored snapshot so
+ * every device sees identical content; builds once on demand if absent.
  */
 export const calendar = onRequest(
   { region: REGION, timeoutSeconds: 120, cors: true },
-  async (_req, res) => {
+  async (req, res) => {
+    const spot = Number(req.query.spot ?? 644417);
+    const cal = CALENDARS.find((c) => c.spot === spot);
+    if (!cal) {
+      res.status(400).send("unknown spot");
+      return;
+    }
     try {
-      const snap = await getFirestore().doc(CALENDAR_DOC).get();
-      const ics = (snap.data()?.ics as string) || (await refreshStoredCalendar());
-      const generatedAt = snap.data()?.generatedAt as
-        | { toDate(): Date }
-        | undefined;
+      const snap = await getFirestore().doc(cal.doc).get();
+      const ics = (snap.data()?.ics as string) || (await refreshStoredCalendar(cal));
+      const generatedAt = snap.data()?.generatedAt as { toDate(): Date } | undefined;
       res.set("Content-Type", "text/calendar; charset=utf-8");
-      res.set("Content-Disposition", 'inline; filename="castelldefels-kite.ics"');
-      // Short cache + Last-Modified so clients revalidate quickly instead of
-      // sitting on a stale copy; the snapshot itself only changes every 3h.
+      res.set("Content-Disposition", `inline; filename="${cal.file}"`);
       res.set("Cache-Control", "public, max-age=900");
       if (generatedAt) res.set("Last-Modified", generatedAt.toDate().toUTCString());
       res.send(ics);

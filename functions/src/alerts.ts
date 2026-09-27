@@ -9,16 +9,18 @@ export const WIND_ALERT_KNOTS = 13;
 /**
  * - `twintip`   — status became kiteable (Quizás or SI!)
  * - `twintipYes`— status became SI! specifically (the definite "go")
- * - `wind`      — average reached the knots threshold
+ * - `wind`      — Castelldefels live average reached the knots threshold
+ * - `bogatell`  — a Bogatell forecast star window became active
  */
-export type AlertKind = "twintip" | "twintipYes" | "wind";
+export type AlertKind = "twintip" | "twintipYes" | "wind" | "bogatell";
 
-type ArmedKey = "twintipArmed" | "twintipYesArmed" | "windArmed";
+type ArmedKey = "twintipArmed" | "twintipYesArmed" | "windArmed" | "bogatellArmed";
 
 const ARMED_KEY: Record<AlertKind, ArmedKey> = {
   twintip: "twintipArmed",
   twintipYes: "twintipYesArmed",
   wind: "windArmed",
+  bogatell: "bogatellArmed",
 };
 
 interface AlertState {
@@ -26,6 +28,7 @@ interface AlertState {
   twintipArmed: boolean;
   twintipYesArmed: boolean;
   windArmed: boolean;
+  bogatellArmed: boolean;
 }
 
 const STATE_PATH = "state/alerts";
@@ -54,12 +57,18 @@ export async function gateAlerts(
     // A new local day re-arms everything.
     const state: AlertState =
       prev && prev.day === t.day
-        ? { ...prev }
-        : { day: t.day, twintipArmed: true, twintipYesArmed: true, windArmed: true };
+        ? { ...prev, bogatellArmed: prev.bogatellArmed ?? true }
+        : {
+            day: t.day,
+            twintipArmed: true,
+            twintipYesArmed: true,
+            windArmed: true,
+            bogatellArmed: true,
+          };
 
     const fire: AlertKind[] = [];
 
-    for (const kind of ["twintip", "twintipYes", "wind"] as const) {
+    for (const kind of ["twintip", "twintipYes", "wind", "bogatell"] as const) {
       const active = conditions[kind];
       if (active === undefined) continue; // source not polled this tick
 

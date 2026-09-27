@@ -86,9 +86,28 @@ export async function tick(now: Date): Promise<Record<string, unknown>> {
     }
   }
 
-  // The 7-day forecast is shown by embedding Windguru's official widget in the
-  // PWA (WG super-blend, spot 644417), so nothing forecast-related is polled or
-  // stored here.
+  // The Castelldefels 7-day forecast is shown via the embedded Windguru widget,
+  // so nothing forecast-related is polled here.
+
+  // --- Bogatell: forecast star window active now? -------------------------
+  // Bogatell has no live station, so its alert rides the same star windows the
+  // Bogatell calendar publishes (rebuilt every 3h). Fire when now enters one.
+  let bogWindow: { minWind: number; maxWind: number; maxGust: number } | undefined;
+  try {
+    const cal = await db.doc("state/calendar_1004").get();
+    const wins = (cal.data()?.windows ?? []) as Array<{
+      startMs: number;
+      endMs: number;
+      minWind: number;
+      maxWind: number;
+      maxGust: number;
+    }>;
+    const nowMs = now.getTime();
+    bogWindow = wins.find((w) => nowMs >= w.startMs && nowMs < w.endMs);
+    conditions.bogatell = !!bogWindow;
+  } catch (err) {
+    logger.error("Bogatell window check failed", err);
+  }
 
   // --- Alerts (rising edge only) -----------------------------------------
   const fire = await gateAlerts(t, conditions);
@@ -128,6 +147,16 @@ export async function tick(now: Date): Promise<Record<string, unknown>> {
         title: `💨 ${wind.average} kn average at Castelldefels`,
         body: `At or above ${WIND_ALERT_KNOTS} kn · gusts ${wind.gust} kn · ${wind.direction}`,
         tag: "wind",
+      });
+    } else if (kind === "bogatell" && bogWindow) {
+      const range =
+        bogWindow.minWind === bogWindow.maxWind
+          ? `${bogWindow.minWind} kn`
+          : `${bogWindow.minWind}–${bogWindow.maxWind} kn`;
+      await sendPush({
+        title: `🌬️ Bogatell windy now · ${range}`,
+        body: `Forecast star window · gusts up to ${bogWindow.maxGust} kn.`,
+        tag: "bogatell",
       });
     }
   }
