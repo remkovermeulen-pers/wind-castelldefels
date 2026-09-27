@@ -20,13 +20,23 @@
   <body>
     <div id="app">
       <header class="topbar">
-        <h1>Castelldefels</h1>
+        <h1 id="app-title">Castelldefels</h1>
         <button id="notify" class="notify" type="button" aria-live="polite">
           Enable alerts
         </button>
       </header>
 
+      <nav class="tabs" role="tablist">
+        <button class="tab on" type="button" data-view="castelldefels" role="tab">
+          Castelldefels
+        </button>
+        <button class="tab" type="button" data-view="bogatell" role="tab">
+          Bogatell
+        </button>
+      </nav>
+
       <main>
+       <div id="view-castelldefels" class="view">
         <section class="hero card" id="hero">
           <div class="hero-main">
             <div class="hero-value">
@@ -97,6 +107,82 @@
           </p>
           <p class="tz">Times shown in Europe/Madrid (CET/CEST)</p>
         </footer>
+       </div>
+
+       <div id="view-bogatell" class="view" hidden>
+        <section class="hero card">
+          <div class="hero-main">
+            <div class="hero-value">
+              <span id="bog-avg">--</span><span class="unit">kn</span>
+            </div>
+            <div class="hero-label">Wind now · forecast</div>
+          </div>
+          <dl class="hero-stats two">
+            <div><dt>Gusts</dt><dd id="bog-gust">--</dd></div>
+            <div>
+              <dt>Direction</dt>
+              <dd id="bog-dir" class="dir-cell"></dd>
+            </div>
+          </dl>
+          <p class="rose-note">Rose: green = onshore (E → WSW)</p>
+          <p class="stamp" id="bog-stamp">Loading forecast…</p>
+        </section>
+
+        <section class="card chart-card">
+          <div class="chart-head">
+            <h2>Next 2 days</h2>
+            <span class="threshold-note">dashed line = 12 kn</span>
+          </div>
+          <div class="chart-wrap"><canvas id="bog-chart"></canvas></div>
+        </section>
+
+        <section class="card forecast-card">
+          <div class="chart-head">
+            <h2>7-day forecast</h2>
+            <a class="threshold-note" href="https://www.windguru.cz/1004" rel="noopener"
+              >windguru.cz</a
+            >
+          </div>
+          <div class="widget-wrap" id="bog-windguru">
+            <p class="empty">Loading Windguru forecast…</p>
+          </div>
+        </section>
+
+        <section class="card webcam-card">
+          <div class="chart-head">
+            <h2>Base Nàutica webcam</h2>
+            <a
+              class="threshold-note"
+              href="https://www.skylinewebcams.com/en/webcam/espana/cataluna/barcelona/barcelona-base-nautica.html"
+              target="_blank"
+              rel="noopener"
+              >live video ↗</a
+            >
+          </div>
+          <a
+            class="webcam-link"
+            href="https://www.skylinewebcams.com/en/webcam/espana/cataluna/barcelona/barcelona-base-nautica.html"
+            target="_blank"
+            rel="noopener"
+          >
+            <img id="bog-cam" class="webcam-img" alt="Base Nàutica / Bogatell beach live view" />
+          </a>
+          <p class="stamp">Snapshot refreshes each minute · tap for live video</p>
+        </section>
+
+        <footer class="foot">
+          <p>
+            Forecast: <a href="https://www.windguru.cz/1004" rel="noopener">windguru.cz</a>
+            · Webcam:
+            <a
+              href="https://www.skylinewebcams.com/en/webcam/espana/cataluna/barcelona/barcelona-base-nautica.html"
+              rel="noopener"
+              >skylinewebcams.com</a
+            >
+          </p>
+          <p class="tz">No live wind station at Bogatell — wind is the Windguru forecast.</p>
+        </footer>
+       </div>
       </main>
     </div>
 

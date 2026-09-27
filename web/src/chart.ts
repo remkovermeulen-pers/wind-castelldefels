@@ -182,3 +182,128 @@ export function renderChart(canvas: HTMLCanvasElement, readings: Reading[]): voi
     },
   });
 }
+
+/** Reference line for the Bogatell forecast chart (star threshold, kn). */
+const FORECAST_REF_KN = 12;
+
+let fchart: Chart | null = null;
+
+export interface ForecastChartPoint {
+  ts: number;
+  wind: number | null;
+  gust: number | null;
+}
+
+/**
+ * Forward-looking wind chart for a spot with no live station (Bogatell): the
+ * WG-blend forecast (average + gusts) across a rolling window around now.
+ * Separate instance from renderChart so the two tabs don't fight over one chart.
+ */
+export function renderForecastChart(
+  canvas: HTMLCanvasElement,
+  points: ForecastChartPoint[]
+): void {
+  const muted = css("--muted");
+  const grid = css("--line");
+  const now = Date.now();
+  const min = now - 6 * HOUR_MS;
+  const max = now + 42 * HOUR_MS;
+
+  const win = points.filter((p) => p.ts >= min - HOUR_MS && p.ts <= max + HOUR_MS);
+
+  const datasets: ChartDataset<"line", Pt[]>[] = [
+    {
+      label: "Gusts",
+      data: win.map((p) => ({ x: p.ts, y: p.gust })),
+      borderColor: css("--gust"),
+      borderWidth: 1.5,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      tension: 0.3,
+    },
+    {
+      label: "Average",
+      data: win.map((p) => ({ x: p.ts, y: p.wind })),
+      borderColor: css("--accent"),
+      borderWidth: 2.5,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      tension: 0.3,
+    },
+    {
+      label: `${FORECAST_REF_KN} kn`,
+      data: [
+        { x: min, y: FORECAST_REF_KN },
+        { x: max, y: FORECAST_REF_KN },
+      ],
+      borderColor: muted,
+      borderWidth: 1,
+      borderDash: [6, 5],
+      pointRadius: 0,
+      pointHitRadius: 0,
+    },
+  ];
+
+  const data = { datasets };
+
+  if (fchart) {
+    fchart.data = data as never;
+    const x = fchart.options.scales!.x!;
+    x.min = min;
+    x.max = max;
+    fchart.update("none");
+    return;
+  }
+
+  fchart = new Chart(canvas, {
+    type: "line",
+    data: data as never,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      parsing: false,
+      normalized: true,
+      interaction: { mode: "nearest", axis: "x", intersect: false },
+      scales: {
+        x: {
+          type: "linear",
+          min,
+          max,
+          grid: { display: false },
+          afterBuildTicks: wholeHourTicks,
+          ticks: {
+            color: muted,
+            maxRotation: 0,
+            autoSkip: false,
+            font: { size: 10 },
+            callback: (v) => hhmm.format(new Date(Number(v))),
+          },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: grid },
+          border: { display: false },
+          ticks: { color: muted, font: { size: 10 } },
+          title: { display: true, text: "knots", color: muted, font: { size: 10 } },
+        },
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: muted,
+            boxWidth: 10,
+            boxHeight: 2,
+            font: { size: 10 },
+            filter: (item) => item.text !== `${FORECAST_REF_KN} kn`,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            title: (items) => full.format(new Date(Number(items[0].parsed.x))),
+            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} kn`,
+          },
+        },
+      },
+    },
+  });
+}

@@ -13,6 +13,7 @@
  * blended gust > GUST_MIN_KNOTS. Wind is in knots.
  */
 const IAPI = "https://www.windguru.cz/int/iapi.php";
+/** Default spot: Castelldefels (BUNKER BEACH CLUB), used by the calendar feed. */
 const SPOT = 644417;
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
@@ -43,6 +44,8 @@ export interface ForecastPoint {
   wind: number | null;
   /** Blended gust, knots. */
   gust: number | null;
+  /** Blended wind direction the wind comes from, degrees (0–360), or null. */
+  dir: number | null;
 }
 
 export interface Forecast {
@@ -57,13 +60,15 @@ interface Member {
   cachefix: string;
 }
 
-async function getJson(url: string): Promise<Record<string, unknown>> {
+type MemberPoint = { wind: number | null; gust: number | null; dir: number | null };
+
+async function getJson(url: string, spot: number): Promise<Record<string, unknown>> {
   const res = await fetch(url, {
     headers: {
       "User-Agent": UA,
       "Accept": "application/json, text/javascript, */*",
       "X-Requested-With": "XMLHttpRequest",
-      "Referer": `https://www.windguru.cz/${SPOT}`,
+      "Referer": `https://www.windguru.cz/${spot}`,
     },
   });
   if (!res.ok) throw new Error(`windguru: HTTP ${res.status}`);
@@ -73,41 +78,44 @@ async function getJson(url: string): Promise<Record<string, unknown>> {
 }
 
 /** One member's series, keyed by epoch seconds. */
-async function fetchMember(m: Member): Promise<Map<number, { wind: number | null; gust: number | null }>> {
+async function fetchMember(m: Member, spot: number): Promise<Map<number, MemberPoint>> {
   const data = await getJson(
-    `${IAPI}?q=forecast&id_model=${m.id_model}&id_spot=${SPOT}` +
+    `${IAPI}?q=forecast&id_model=${m.id_model}&id_spot=${spot}` +
       `&rundef=${encodeURIComponent(m.rundef)}` +
       `&initstr=${encodeURIComponent(m.initstr)}` +
-      `&WGCACHEFIX=${encodeURIComponent(m.cachefix)}`
+      `&WGCACHEFIX=${encodeURIComponent(m.cachefix)}`,
+    spot
   );
   const f = data.fcst as Record<string, unknown> | undefined;
   const hours = f?.hours as number[] | undefined;
   const wind = f?.WINDSPD as (number | null)[] | undefined;
   const gust = (f?.GUST ?? []) as (number | null)[];
+  const wdir = (f?.WINDDIR ?? []) as (number | null)[];
   const init = f?.initstamp as number | undefined;
 
-  const out = new Map<number, { wind: number | null; gust: number | null }>();
+  const out = new Map<number, MemberPoint>();
   if (!hours || !wind || init == null) return out;
   hours.forEach((h, i) => {
     out.set(init + h * 3600, {
       wind: typeof wind[i] === "number" ? wind[i] : null,
       gust: typeof gust[i] === "number" ? gust[i] : null,
+      dir: typeof wdir[i] === "number" ? wdir[i] : null,
     });
   });
   return out;
 }
 
 /**
- * Reproduces the WG blend by fetching every member model and taking a
- * resolution-weighted average per hour.
+ * Reproduces the WG blend for a spot by fetching every member model and taking
+ * a resolution-weighted average per hour (direction via circular mean).
  */
-export async function fetchForecast(): Promise<Forecast> {
-  const [spot, info] = await Promise.all([
-    getJson(`${IAPI}?q=forecast_spot&id_spot=${SPOT}`),
-    getJson(`${IAPI}?q=model_info_full&virtual=1&sst=1&user_priority=1`),
+export async function fetchForecast(spot: number = SPOT): Promise<Forecast> {
+  const [spotData, info] = await Promise.all([
+    getJson(`${IAPI}?q=forecast_spot&id_spot=${spot}`, spot),
+    getJson(`${IAPI}?q=model_info_full&virtual=1&sst=1&user_priority=1`, spot),
   ]);
 
-  const tab = (spot.tabs as Array<Record<string, unknown>>)?.[0];
+  const tab = (spotData.tabs as Array<Record<string, unknown>>)?.[0];
   const members = tab?.id_model_arr as Member[] | undefined;
   if (!members?.length) throw new Error("windguru: no member models");
 
@@ -117,11 +125,11 @@ export async function fetchForecast(): Promise<Forecast> {
   };
   const weightOf = (id: number): number => Math.pow(1 / resOf(id), BLEND_EXP);
 
-  const settled = await Promise.allSettled(members.map((m) => fetchMember(m)));
+  const settled = await Promise.allSettled(members.map((m) => fetchMember(m, spot)));
   const series = settled
     .map((r, i) => ({ ok: r.status === "fulfilled", data: r.status === "fulfilled" ? r.value : null, id: members[i].id_model }))
     .filter((s) => s.ok && s.data && s.data.size > 0) as Array<{
-    data: Map<number, { wind: number | null; gust: number | null }>;
+    data: Map<number, MemberPoint>;
     id: number;
   }>;
   if (!series.length) throw new Error("windguru: no member forecasts fetched");
@@ -129,7 +137,7 @@ export async function fetchForecast(): Promise<Forecast> {
   const allTs = [...new Set(series.flatMap((s) => [...s.data.keys()]))].sort((a, b) => a - b);
 
   const points: ForecastPoint[] = allTs.map((ts, i) => {
-    let wNum = 0, wDen = 0, gNum = 0, gDen = 0;
+    let wNum = 0, wDen = 0, gNum = 0, gDen = 0, dx = 0, dy = 0, dW = 0;
     for (const s of series) {
       const v = s.data.get(ts);
       if (!v) continue;
@@ -142,12 +150,25 @@ export async function fetchForecast(): Promise<Forecast> {
         gNum += v.gust * w;
         gDen += w;
       }
+      if (v.dir != null) {
+        const r = (v.dir * Math.PI) / 180;
+        dx += Math.cos(r) * w;
+        dy += Math.sin(r) * w;
+        dW += w;
+      }
+    }
+    let dir: number | null = null;
+    if (dW) {
+      dir = (Math.atan2(dy, dx) * 180) / Math.PI;
+      if (dir < 0) dir += 360;
+      dir = Math.round(dir);
     }
     return {
       tsMs: ts * 1000,
       stepH: i + 1 < allTs.length ? Math.round((allTs[i + 1] - ts) / 3600) : 1,
       wind: wDen ? Math.round((wNum / wDen) * 10) / 10 : null,
       gust: gDen ? Math.round((gNum / gDen) * 10) / 10 : null,
+      dir,
     };
   });
 

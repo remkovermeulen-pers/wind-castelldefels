@@ -22,31 +22,33 @@ const IFRAME_URL = "https://www.windguru.cz/widget-fcst-iframe.php";
  */
 const HEIGHT_PX = 300;
 
-const PARAMS = new URLSearchParams({
-  s: "644417", // spot
-  m: "100", // WG super-blend
-  uid: "wg_fwdg_644417_100_wind_castelldefels",
-  wj: "knots", // wind in knots, matching the rest of the app
-  tj: "c", // temperature in °C
-  waj: "m",
-  tij: "cm",
-  odh: "9", // only show 09:00…
-  doh: "22", // …through 22:00 each day
-  fhours: "168", // 7-day horizon
-  hrsm: "1", // hourly columns
-  vt: "forecasts",
-  lng: "en",
-  idbs: "1", // include the "WG" blend row
-  p: "WINDSPD,GUST,SMER,TMPE,CDC,APCP1s,RATING", // RATING = the Windguru stars row
-});
+function params(spot: number, label: string): URLSearchParams {
+  return new URLSearchParams({
+    s: String(spot),
+    m: "100", // WG super-blend
+    uid: `wg_fwdg_${spot}_100_${label}`,
+    wj: "knots", // wind in knots, matching the rest of the app
+    tj: "c", // temperature in °C
+    waj: "m",
+    tij: "cm",
+    odh: "9", // only show 09:00…
+    doh: "22", // …through 22:00 each day
+    fhours: "168", // 7-day horizon
+    hrsm: "1", // hourly columns
+    vt: "forecasts",
+    lng: "en",
+    idbs: "1", // include the "WG" blend row
+    p: "WINDSPD,GUST,SMER,TMPE,CDC,APCP1s,RATING", // RATING = the stars row
+  });
+}
 
-/** Injects the forecast iframe once. Safe to call repeatedly. */
-export function mountWindguru(host: HTMLElement): void {
+/** Injects the forecast iframe for a spot once. Safe to call repeatedly. */
+export function mountWindguru(host: HTMLElement, spot = 644417, label = "wind"): void {
   if (host.querySelector("iframe")) return;
 
   const iframe = document.createElement("iframe");
-  iframe.src = `${IFRAME_URL}?${PARAMS.toString()}`;
-  iframe.title = "Windguru 7-day wind forecast for Castelldefels";
+  iframe.src = `${IFRAME_URL}?${params(spot, label).toString()}`;
+  iframe.title = `Windguru 7-day wind forecast (spot ${spot})`;
   iframe.loading = "lazy";
   iframe.width = "100%";
   iframe.height = String(HEIGHT_PX);

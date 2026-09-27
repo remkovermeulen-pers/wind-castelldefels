@@ -1,5 +1,5 @@
 import "./styles.css";
-import { renderChart, WIND_ALERT_KNOTS } from "./chart";
+import { renderChart, renderForecastChart, WIND_ALERT_KNOTS } from "./chart";
 import {
   subscribeReadings,
   subscribeZone,
@@ -11,6 +11,7 @@ import { currentState, disable, enable, type NotifyState } from "./notifications
 import { renderCompass } from "./compass";
 import { mountWindguru } from "./windguru";
 import { startLive } from "./live";
+import { functionsBase } from "./firebase-config";
 
 const $ = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
@@ -354,6 +355,107 @@ async function initNotifications(): Promise<void> {
   });
 }
 
+// --- Bogatell tab -------------------------------------------------------
+
+const BOGATELL_SPOT = 1004;
+// Proxied through our function so ad/tracker blockers don't drop the CDN image.
+const CAM_URL = `${functionsBase}/webcam`;
+const COMPASS16 = [
+  "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+  "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW",
+];
+const degToCompass = (d: number): string => COMPASS16[Math.round((d % 360) / 22.5) % 16];
+
+interface FcPoint {
+  t: number;
+  w: number | null;
+  g: number | null;
+  d: number | null;
+}
+
+let bogatellMounted = false;
+let camTimer: number | undefined;
+
+function refreshCam(): void {
+  ($("bog-cam") as HTMLImageElement).src = `${CAM_URL}?t=${Date.now()}`;
+}
+
+/** Fetch the Bogatell WG-blend forecast and paint the hero + chart. */
+async function loadBogatellForecast(): Promise<void> {
+  try {
+    const res = await fetch(`${functionsBase}/forecast?spot=${BOGATELL_SPOT}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { points } = (await res.json()) as { points: FcPoint[] };
+    if (!points?.length) throw new Error("no points");
+
+    const now = Date.now();
+    const cur = points.reduce((a, b) => (Math.abs(b.t - now) < Math.abs(a.t - now) ? b : a));
+
+    $("bog-avg").textContent = cur.w == null ? "--" : String(cur.w);
+    $("bog-gust").textContent = cur.g == null ? "--" : String(cur.g);
+    renderCompass($("bog-dir"), cur.d == null ? "?" : degToCompass(cur.d), {
+      size: 76,
+      compact: true,
+    });
+    $("bog-stamp").textContent = `Forecast for ${stampFmt.format(new Date(cur.t))} · WG blend`;
+
+    renderForecastChart(
+      $<HTMLCanvasElement>("bog-chart"),
+      points.map((p) => ({ ts: p.t, wind: p.w, gust: p.g }))
+    );
+  } catch (err) {
+    console.error(err);
+    $("bog-stamp").textContent = "Forecast unavailable — retry later";
+  }
+}
+
+// --- Tabs ---------------------------------------------------------------
+
+const VIEW_TITLE: Record<string, string> = {
+  castelldefels: "Castelldefels",
+  bogatell: "Bogatell",
+};
+
+function showView(view: string): void {
+  for (const tab of document.querySelectorAll<HTMLButtonElement>(".tab")) {
+    tab.classList.toggle("on", tab.dataset.view === view);
+  }
+  $("view-castelldefels").hidden = view !== "castelldefels";
+  $("view-bogatell").hidden = view !== "bogatell";
+  $("app-title").textContent = VIEW_TITLE[view] ?? "Wind";
+  try {
+    localStorage.setItem("wind.view", view);
+  } catch {
+    /* private mode */
+  }
+
+  clearInterval(camTimer);
+  if (view === "bogatell") {
+    if (!bogatellMounted) {
+      bogatellMounted = true;
+      mountWindguru($("bog-windguru"), BOGATELL_SPOT, "bogatell");
+    }
+    void loadBogatellForecast();
+    refreshCam();
+    camTimer = window.setInterval(refreshCam, 60_000) as unknown as number;
+  }
+  // Let Chart.js reflow now the shown canvas has real dimensions.
+  window.dispatchEvent(new Event("resize"));
+}
+
+function initTabs(): void {
+  for (const tab of document.querySelectorAll<HTMLButtonElement>(".tab")) {
+    tab.addEventListener("click", () => showView(tab.dataset.view!));
+  }
+  let start = "castelldefels";
+  try {
+    start = localStorage.getItem("wind.view") || start;
+  } catch {
+    /* private mode */
+  }
+  showView(start);
+}
+
 // --- Boot ---------------------------------------------------------------
 
 // Let the user expand the collapsed (off-season) zone panel to peek at the
@@ -367,6 +469,7 @@ subscribeReadings(renderWind);
 subscribeZone(renderZone);
 mountWindguru($("windguru"));
 void initNotifications();
+initTabs();
 
 // Near-live current wind while the app is open, layered over the stored history.
 startLive((r) =>

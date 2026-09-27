@@ -7,6 +7,7 @@ import * as logger from "firebase-functions/logger";
 import { tick } from "./poller";
 import { fetchWind } from "./sources/nudos";
 import { buildCalendar } from "./calendar";
+import { fetchForecast } from "./sources/windguru";
 import { ZONE } from "./time";
 
 initializeApp();
@@ -41,6 +42,64 @@ export const pollNow = onRequest(
   { region: REGION, timeoutSeconds: 60, cors: true },
   async (_req, res) => {
     res.json(await tick(new Date()));
+  }
+);
+
+/**
+ * Proxies the Base Nàutica (Bogatell) webcam snapshot. Serving it from our own
+ * origin avoids ad/tracker blockers that drop the SkylineWebcams CDN and any
+ * hotlink checks, so the near-live frame loads reliably on all devices.
+ */
+export const webcam = onRequest(
+  { region: REGION, timeoutSeconds: 15, cors: true },
+  async (_req, res) => {
+    try {
+      const r = await fetch("https://cdn.skylinewebcams.com/1469.jpg", {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; wind-castelldefels/1.0)",
+          "Referer": "https://www.skylinewebcams.com/",
+        },
+      });
+      if (!r.ok) {
+        res.status(502).end();
+        return;
+      }
+      res.set("Content-Type", "image/jpeg");
+      res.set("Cache-Control", "public, max-age=30");
+      res.send(Buffer.from(await r.arrayBuffer()));
+    } catch (err) {
+      logger.error("webcam proxy failed", err);
+      res.status(502).end();
+    }
+  }
+);
+
+/**
+ * Windguru WG-blend forecast as JSON, for spots without a live station (e.g.
+ * Bogatell, which has no anemometer). Allowlisted spots only. Compact keys:
+ * t=epoch ms, w=wind kn, g=gust kn, d=direction deg.
+ */
+const FORECAST_SPOTS = new Set([644417, 1004]);
+
+export const forecast = onRequest(
+  { region: REGION, timeoutSeconds: 60, cors: true },
+  async (req, res) => {
+    const spot = Number(req.query.spot ?? 644417);
+    if (!FORECAST_SPOTS.has(spot)) {
+      res.status(400).json({ error: "unknown spot" });
+      return;
+    }
+    try {
+      const f = await fetchForecast(spot);
+      res.set("Cache-Control", "public, max-age=1800");
+      res.json({
+        model: f.model,
+        points: f.points.map((p) => ({ t: p.tsMs, w: p.wind, g: p.gust, d: p.dir })),
+      });
+    } catch (err) {
+      logger.error("forecast failed", err);
+      res.status(502).json({ error: String(err) });
+    }
   }
 );
 
